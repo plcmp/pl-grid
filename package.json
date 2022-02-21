@@ -1,0 +1,34 @@
+{
+    "name": "@plcmp/pl-grid",
+    "version": "0.0.1",
+    "description": "Simple table component.",
+    "main": "pl-grid.js",
+    "repository": {
+        "url": "https://github.com/plcmp/pl-grid.git"
+    },
+    "license": "MIT",
+    "type": "module",
+    "author": {
+        "name": "Azat Yamalov",
+        "email": "boikovdv@live.com"
+    },
+    "contributors": [
+        {
+            "name": "Dmitry Boikov",
+            "email": "boikovdv@gmail.com"
+        },
+        {
+            "name": "Andrey Maksimov",
+            "email": "andrmaxmail@gmail.com"
+        }
+    ],
+    "dependencies": {
+        "polylib": "^1.0.0",
+        "dayjs": "^1.10.7",
+        "@plcmp/pl-virtual-scroll": "^0.0.1",
+        "@plcmp/utils": "^0.0.1",
+        "@plcmp/pl-repeat": "^0.0.1",
+        "@plcmp/pl-icon": "^0.0.1",
+        "@plcmp/pl-iconset-default": "^0.0.1"
+    }
+}
