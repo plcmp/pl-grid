@@ -136,11 +136,6 @@ class PlGridColumn extends PlElement {
             this._cellTemplate = html`[[_getValue(row, field, kind, format)]]`;
         }
         this._cellTemplate._hti = tplEl?._hti || this._ti;
-        requestAnimationFrame(() => {
-            if(!this.width) {
-                this.width = this.offsetWidth;
-            }
-        });
     }
 
     _sortableHidden(sortable) {

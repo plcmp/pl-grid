@@ -104,6 +104,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 flex-direction: column;
                 border-bottom: 1px solid var(--grey-light);
                 background-color: white;
+                width: 100%;
+                flex-shrink: 0;
             }
 
             .cells {
@@ -111,6 +113,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 flex-direction: row;
                 background-color: inherit;
                 white-space: nowrap;
+                width: 100%;
+                flex-shrink: 0;
             }
 
             .cell{
