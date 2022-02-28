@@ -1,6 +1,6 @@
 {
     "name": "@plcmp/pl-grid",
-    "version": "0.0.2",
+    "version": "0.1.0",
     "description": "Simple table component.",
     "main": "pl-grid.js",
     "repository": {
@@ -25,10 +25,10 @@
     "dependencies": {
         "polylib": "^1.0.0",
         "dayjs": "^1.10.7",
-        "@plcmp/pl-virtual-scroll": "^0.0.2",
-        "@plcmp/utils": "^0.0.2",
-        "@plcmp/pl-repeat": "^0.0.1",
-        "@plcmp/pl-icon": "^0.0.1",
-        "@plcmp/pl-iconset-default": "^0.0.2"
+        "@plcmp/pl-virtual-scroll": "^0.1.0",
+        "@plcmp/utils": "^0.1.0",
+        "@plcmp/pl-repeat": "^0.1.0",
+        "@plcmp/pl-icon": "^0.1.0",
+        "@plcmp/pl-iconset-default": "^0.1.0"
     }
 }
