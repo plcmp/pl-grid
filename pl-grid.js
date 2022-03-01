@@ -6,7 +6,7 @@ import '@plcmp/pl-virtual-scroll';
 import "@plcmp/pl-icon";
 import "@plcmp/pl-iconset-default";
 
-import { PlResizeableMixin } from '@plcmp/utils';
+import {PlaceHolder, PlResizeableMixin } from '@plcmp/utils';
 
 import "./pl-grid-column.js";
 
@@ -23,7 +23,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             _columns: { type: Array, value: () => [] },
             keyField: { type: String },
             pkeyField: { type: String },
-            hasChildField: { type: String }
+            hasChildField: { type: String, value: '_haschildren' }
         }
     }
 
@@ -301,10 +301,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     connectedCallback() {
         super.connectedCallback();
-        setTimeout(() => { if (this.data?.control) this.data.control.partialData = this.partialData; }, 0);
+        setTimeout(() => {
+            if (this.data?.control) {
+                this.data.control.partialData = this.partialData;
+                if (this.data.control.treeMode && this.pkeyField) {
+                    this.data.control.treeMode.hidField = this.pkeyField;
+                    this.data.control.treeMode.keyField = this.keyField;
+                }
+            }
+            }, 0);
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
-        /* TODO: убрать, добавлено поскольку не срабатывает обсервер если значение задано до апгрейда компонента */
-        if (this.data) this._dataObserver(this.data)
 
         let tpl = this.querySelector('template[is=expander]');
         if (tpl) {
@@ -324,6 +330,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 this.set('_vdata', val);
             }
         } else {
+            if (mutation.path === 'data.load') {
+                if (this.data !== this._vdata) { this._vdata.load = this.data.load }
+            }
             //TODO: fix mutation translate for tree
             if (this.tree) {
                 this.applyTreeMutation(mutation);
@@ -458,7 +467,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     _onTreeNodeClick(event) {
         event.stopPropagation();
-        if (event.model.row.__hasChilds === false) {
+        if (event.model.row.__haschildren === false) {
             return;
         }
         let idx = this._vdata.indexOf(event.model.row);
@@ -492,6 +501,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 it = it._pitem;
             }
             pendingShow.forEach(i => this.showChilds(i));
+        } else if (this.partialData){
+            // if no rows found with partial load for tree, add lazy load placeholder
+            this.push('data', new PlaceHolder({ [this.pkeyField] :it[this.keyField], hid: it[this.keyField], _haschildren: false}));
         }
     }
 
@@ -514,7 +526,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     _getTreeIcon(row) {
-        if (!row._hasChilds) {
+        if (!row._haschildren) {
             return '';
         }
 
@@ -522,7 +534,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
     _vdataObserver(val, old, mutation) {
         //TODO: fix index translation for tree
-        if (mutation) {
+        // do not reflect splices from vdata root
+        if (mutation && mutation.path !== '_vdata') {
             let path = mutation.path.replace('_vdata', 'data');
             this.dispatchEvent(new CustomEvent('data-changed', { detail: { ...mutation, path } }));
         }
@@ -549,28 +562,31 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     _treeModeChange(tree) {
-        if (this.data.control) {
-            this.data.control.mode = 'tree';
+        if (this.data.control && tree) {
+            this.data.control.treeMode = {
+                hidValue: null,
+                keyField: this.keyField,
+                hidField: this.pkeyField
+            };
         }
     }
 
     buildTree(key, pkey, hasChild) {
         let hasChildField;
         const pKeys = new Set();
-        if (!hasChild) {
+        if (!hasChild && !this.partialData) {
             this.data.forEach(e => { pKeys.add(e[pkey]); });
-        } else {
-            hasChildField = hasChild || '_haschilds';
         }
         let vData = this.data.filter((i, c) => {
             i._index = c;
             i._childsCount = null;
-            i._hasChilds = hasChildField ? i[hasChildField] : pKeys.has(i[key]);
+            i._haschildren = hasChildField ? i[hasChildField] ?? true : pKeys.has(i[key]);
             if (i[pkey] == null) {
                 i._level = 0;
                 return true;
             }
         });
+        vData.load = this.data.load
         return vData;
     }
 
@@ -579,7 +595,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
      * @param {DataMutation} m
      */
     applyTreeMutation(m) {
-        console.log(m)
         function indexesToRanges(arr) {
             return arr.sort((a, b) => a - b).reduce((a, i) => {
                 if (a[0]?.end === i - 1) {
@@ -616,7 +631,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 const item = this.data[i];
 
                 // проверяем, возможно для добаввленного элемента уже есть дочерние
-                item._hasChilds = this.hasChildField ? item[this.hasChildField] : this.data.some(i => i[this.pkeyField] == item[this.keyField]);
+                item._haschildren = this.hasChildField ? item[this.hasChildField] ?? true : this.data.some(i => i[this.pkeyField] == item[this.keyField]);
 
                 let pIndex; let parentItem;
                 // Если вставляемая запись не имеет ссылки на родителя, добавляем к корням
@@ -628,8 +643,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 } else {
                     // Ищем родителя для вставки
                     pIndex = this._vdata.findIndex(vi => vi[this.keyField] == item[this.pkeyField]);
-                    parentItem = this._vdata[pIndex];
-                    if (!parentItem._hasChilds) this.set(['_vdata', pIndex, '_hasChilds'], true);
+                    if (pIndex >= 0) {
+                        parentItem = this._vdata[pIndex];
+                        if (!parentItem._haschildren) this.set(['_vdata', pIndex, '_haschildren'], true);
+                    }
                 }
                 // Если родитель нашелся и он раскрыт, ищем куда в нем вставлять
                 if (pIndex >= 0 || !item[this.pkeyField]) {
@@ -639,9 +656,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                         // и вставляем элемент в найденную позицию
 
                         item._level = parentItem._level + 1;
-                        // item.__hasChilds = this.hasChildField ? item[this.hasChildField] : false;
+                        // item.__haschildren = this.hasChildField ? item[this.hasChildField] : false;
                         item._pitem = parentItem;
-                        ////if (this.dataMode == 'tree' && item.__hasChilds) item.__needLoad = true;
+                        ////if (this.dataMode == 'tree' && item.__haschildren) item.__needLoad = true;
                         let insertIndex = pIndex + 1;
                         while (this._vdata.length > insertIndex && this._vdata[insertIndex]._level > parentItem._level) {
                             if (this._vdata[insertIndex][this.pkeyField] == parentItem[this.keyField] && this._vdata[insertIndex]._index > item._index) {
