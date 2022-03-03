@@ -18,7 +18,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             noFit: { type: Boolean, reflectToAttribute: true },
             tree: { type: Boolean, observer: '_treeModeChange' },
             partialData: { type: Boolean },
-            _expandTemplate: { type: Object },
             _vdata: { type: Array, value: () => [], observer: '_vdataObserver' },
             _columns: { type: Array, value: () => [] },
             keyField: { type: String },
@@ -58,6 +57,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 height: 100%;
                 overflow: auto;
                 contain: strict;
+                position: relative;
             }
 
             #headerContainer{
@@ -97,22 +97,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 height: 100%;
                 width: 100%;
                 position: relative;
+                display: flex;
+                flex-direction: column;
+				width: 100%;
             }
 
             .row {
                 display: flex;
-                flex-direction: column;
+                flex-direction: row;
                 border-bottom: 1px solid var(--grey-light);
                 background-color: white;
-                width: 100%;
-                flex-shrink: 0;
-            }
-
-            .cells {
-                display: flex;
-                flex-direction: row;
-                background-color: inherit;
-                white-space: nowrap;
                 width: 100%;
                 flex-shrink: 0;
             }
@@ -128,6 +122,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 will-change: width;
                 position: sticky;
                 box-sizing: border-box;
+                flex-shrink: 0;
+                white-space: nowrap;
             }
 
             .cell[fixed] {
@@ -149,10 +145,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 display: none;
             }
 
-            .row .cells:hover, 
-            .row .cells:hover .cell[fixed], .row .cells:hover .cell[action],
-            .row[active] .cells, 
-            .row[active] .cells .cell[fixed], .row[active] .cells .cell[action]{
+            .row:hover, 
+            .row:hover .cell[fixed], .row:hover .cell[action],
+            .row[active], 
+            .row[active] .cell[fixed], .row[active] .cell[action]{
                 white-space: normal;
                 background-color: var(--primary-lightest);
                 --pl-icon-fill-color: var(--black-base);
@@ -173,29 +169,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 background-color: inherit;
             }
 
-            .summary-cell ::slotted(*) {
-                display: flex;
-                padding: 0 8px; 
-                align-items: center;
-                min-height: 32px;
-                color: black;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                background-color: inherit;
-                will-change: width;
-                position: sticky;
-            }
-
-            #summary {
-                display: flex;
-                flex-direction: row;
-                position: sticky;
-                bottom: 0;
-                background: var(--grey-lightest);
-				z-index: 2;
-                border-top: 1px solid var(--grey-light);
-            }
-
             .top-toolbar ::slotted(*) {
                 min-height: 48px;
                 width: 100%;
@@ -212,31 +185,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 box-sizing: border-box;
             }
 
-            .expander {
-                display:none;
-            }
-
-            .expander[opened] {
-                height: auto;
-                width: 100%;
-                display: flex;
-                min-height: fit-content;
-                padding: 0 8px;
-                box-sizing: border-box;
-                overflow: hidden;
-                -webkit-animation: slide-bottom 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
-	            animation: slide-bottom 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
-            }
-
-            @keyframes slide-bottom{
-                0% {
-                    transform:translateY(-40px)
-                }
-                100%{
-                    transform:translateY(0px)
-                }
-            }
-            
             pl-virtual-scroll {
                 display: none;
             }
@@ -264,33 +212,19 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
                         <template id="tplRow">
                             <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
-                                <div class="cells">
-                                    <pl-repeat items="[[_columns]]" as="column" id="cell-repeater">
-                                        <template id="tplCol">
-                                            <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
-                                                <span class="tree-cell" style=[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
-                                                    [[_getTreeIcon(row)]]
-                                                </span>
-                                                <span class="cell-content">[[column.cellTemplate]]</span>
-                                            </div>
-                                        </template>
-                                    </pl-repeat>
-                                </div>
-                                <div class="expander" opened$=[[row._opened]]>
-                                    [[_expandTemplate]]
-                                </div>
+                                <pl-repeat items="[[_columns]]" as="column" id="cell-repeater">
+                                    <template id="tplCol">
+                                        <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                            <span class="tree-cell" style=[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
+                                                [[_getTreeIcon(row)]]
+                                            </span>
+                                            <span class="cell-content">[[column.cellTemplate]]</span>
+                                        </div>
+                                    </template>
+                                </pl-repeat>
                             </div>
                         </template>
                     </pl-virtual-scroll>
-                </div>
-                <div id="summary">
-                    <pl-repeat items="[[_columns]]" as="column">
-                        <template>
-                            <div style$="[[_getCellStyle(column.index, column.width)]]" class="summary-cell">
-                                <slot name="[[_getSummarySlotName(column.index)]]"></slot>
-                            </div>
-                        </template>
-                    </pl-repeat>
                 </div>
             </div>
             <div class="bottom-toolbar">
@@ -310,16 +244,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 }
             }
             }, 0);
+
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
-
-        let tpl = this.querySelector('template[is=expander]');
-        if (tpl) {
-            this._expandTemplate = tpl.tpl;
-        }
-
-        window.requestAnimationFrame(() => {
+        
+        const resizeObserver = new ResizeObserver(entries => {
+            this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
             this._init();
-        });
+        })
+
+        resizeObserver.observe(this.$.headerContainer);
     }
 
     _dataObserver(val, _old, mutation) {
@@ -415,10 +348,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return `column-${index}`;
     }
 
-    _getSummarySlotName(index) {
-        return `summary-column-${index}`;
-    }
-
     _getCellStyle(index) {
         const column = this._columns[index];
         const style = [];
@@ -444,11 +373,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     _onRowClick(event) {
         if (event.model.row) {
             this.selected = event.model.row;
-        }
-
-        if (this._expandTemplate) {
-            let idx = this._vdata.indexOf(event.model.row);
-            this.set(`_vdata.${idx}._opened`, !event.model.row._opened);
         }
 
         this.dispatchEvent(new CustomEvent('rowClick', { detail: { model: this.selected } }))
