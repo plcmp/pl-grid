@@ -9,6 +9,7 @@ import "@plcmp/pl-iconset-default";
 import {PlaceHolder, PlResizeableMixin } from '@plcmp/utils';
 
 import "./pl-grid-column.js";
+import {normalizePath} from "polylib/common.js";
 
 class PlGrid extends PlResizeableMixin(PlElement) {
     static get properties() {
@@ -270,6 +271,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             if (this.tree) {
                 this.applyTreeMutation(mutation);
             } else {
+                //TODO: path can be array
                 let translatedPath = mutation.path.replace('data', '_vdata');
                 // translate mutation with resenting watermark,
                 // we need to new mutation cycle for apply nested change
@@ -540,67 +542,80 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         target: ControlledArray(411) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, …]
         wmh: 99
          */
-        // delete
-        if (m.deletedCount > 0) {
-            let di = m.deleted.map(i => this._vdata.indexOf(i)).filter(i => i >= 0);
-            let delRanges = indexesToRanges(di);
-            delRanges.forEach(rr => this.splice('_vdata', rr.start, rr.end - rr.start + 1));
-        }
-        // add
-        // Обновляем индексы
-        this.data.forEach((e, i) => { e._index = i; });
-        // Вставляем в нужные места добавленные элементы
-        if (m.addedCount > 0) {
-            for (let i = m.index; i < (m.index + m.addedCount); i++) {
-                const item = this.data[i];
+        if (m.path === 'data' && m.action === 'splice') {
+            // delete
+            if (m.deletedCount > 0) {
+                let di = m.deleted.map(i => this._vdata.indexOf(i)).filter(i => i >= 0);
+                let delRanges = indexesToRanges(di);
+                delRanges.forEach(rr => this.splice('_vdata', rr.start, rr.end - rr.start + 1));
+            }
+            // add
+            // Обновляем индексы
+            this.data.forEach((e, i) => {
+                e._index = i;
+            });
+            // Вставляем в нужные места добавленные элементы
+            if (m.addedCount > 0) {
+                for (let i = m.index; i < (m.index + m.addedCount); i++) {
+                    const item = this.data[i];
 
-                // проверяем, возможно для добаввленного элемента уже есть дочерние
-                item._haschildren = this.hasChildField ? item[this.hasChildField] ?? true : this.data.some(i => i[this.pkeyField] == item[this.keyField]);
+                    // проверяем, возможно для добаввленного элемента уже есть дочерние
+                    item._haschildren = this.hasChildField ? item[this.hasChildField] ?? true : this.data.some(i => i[this.pkeyField] == item[this.keyField]);
 
-                let pIndex; let parentItem;
-                // Если вставляемая запись не имеет ссылки на родителя, добавляем к корням
-                if (!item[this.pkeyField]) {
-                    pIndex = -1;
-                    parentItem = {
-                        code: null, _level: -1, _opened: true, [this.keyField]: item[this.pkeyField]
-                    };
-                } else {
-                    // Ищем родителя для вставки
-                    pIndex = this._vdata.findIndex(vi => vi[this.keyField] == item[this.pkeyField]);
-                    if (pIndex >= 0) {
-                        parentItem = this._vdata[pIndex];
-                        if (!parentItem._haschildren) this.set(['_vdata', pIndex, '_haschildren'], true);
+                    let pIndex;
+                    let parentItem;
+                    // Если вставляемая запись не имеет ссылки на родителя, добавляем к корням
+                    if (!item[this.pkeyField]) {
+                        pIndex = -1;
+                        parentItem = {
+                            code: null, _level: -1, _opened: true, [this.keyField]: item[this.pkeyField]
+                        };
+                    } else {
+                        // Ищем родителя для вставки
+                        pIndex = this._vdata.findIndex(vi => vi[this.keyField] == item[this.pkeyField]);
+                        if (pIndex >= 0) {
+                            parentItem = this._vdata[pIndex];
+                            if (!parentItem._haschildren) this.set(['_vdata', pIndex, '_haschildren'], true);
+                        }
                     }
-                }
-                // Если родитель нашелся и он раскрыт, ищем куда в нем вставлять
-                if (pIndex >= 0 || !item[this.pkeyField]) {
-                    if (parentItem._opened) {
-                        // Ищем потомка с индексом больше чем у того что нужно вставить,
-                        // либо до конца текущего узла (если добавлять в конец)
-                        // и вставляем элемент в найденную позицию
+                    // Если родитель нашелся и он раскрыт, ищем куда в нем вставлять
+                    if (pIndex >= 0 || !item[this.pkeyField]) {
+                        if (parentItem._opened) {
+                            // Ищем потомка с индексом больше чем у того что нужно вставить,
+                            // либо до конца текущего узла (если добавлять в конец)
+                            // и вставляем элемент в найденную позицию
 
-                        item._level = parentItem._level + 1;
-                        // item.__haschildren = this.hasChildField ? item[this.hasChildField] : false;
-                        item._pitem = parentItem;
-                        ////if (this.dataMode == 'tree' && item.__haschildren) item.__needLoad = true;
-                        let insertIndex = pIndex + 1;
-                        while (this._vdata.length > insertIndex && this._vdata[insertIndex]._level > parentItem._level) {
-                            if (this._vdata[insertIndex][this.pkeyField] == parentItem[this.keyField] && this._vdata[insertIndex]._index > item._index) {
-                                // нашли потомка с большим индексом
-                                break;
+                            item._level = parentItem._level + 1;
+                            // item.__haschildren = this.hasChildField ? item[this.hasChildField] : false;
+                            item._pitem = parentItem;
+                            ////if (this.dataMode == 'tree' && item.__haschildren) item.__needLoad = true;
+                            let insertIndex = pIndex + 1;
+                            while (this._vdata.length > insertIndex && this._vdata[insertIndex]._level > parentItem._level) {
+                                if (this._vdata[insertIndex][this.pkeyField] == parentItem[this.keyField] && this._vdata[insertIndex]._index > item._index) {
+                                    // нашли потомка с большим индексом
+                                    break;
+                                }
+                                insertIndex++;
                             }
-                            insertIndex++;
-                        }
 
-                        parentItem._childsCount = (parentItem._childsCount || 0) + 1;
-                        let it = parentItem;
-                        while (it._pitem) {
-                            it._pitem.__childsCount += 1;
-                            it = it._pitem;
+                            parentItem._childsCount = (parentItem._childsCount || 0) + 1;
+                            let it = parentItem;
+                            while (it._pitem) {
+                                it._pitem.__childsCount += 1;
+                                it = it._pitem;
+                            }
+                            this.splice('_vdata', insertIndex, 0, item);
                         }
-                        this.splice('_vdata', insertIndex, 0, item);
                     }
                 }
+            }
+        } else {
+            // translate mutation from 'data' to 'vdata'
+            let path = normalizePath(m.path);
+            path[0] = '_vdata';
+            path[1] = this._vdata.indexOf(this.data[path[1]]);
+            if (path[1] >=0) {
+                this.notifyChange({...m, path: path.join('.')});
             }
         }
     }
