@@ -10,6 +10,7 @@ import {PlaceHolder, PlResizeableMixin } from '@plcmp/utils';
 
 import "./pl-grid-column.js";
 import {normalizePath} from "polylib/common.js";
+import { throttle } from "@plcmp/utils";
 
 class PlGrid extends PlResizeableMixin(PlElement) {
     static get properties() {
@@ -249,7 +250,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
         
         const resizeObserver = new ResizeObserver(entries => {
-            this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
+            let throttler = throttle(() => {
+                this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
+            }, 100)
+
+            throttler();
+        });
+
+        requestAnimationFrame(() => {
             this._init();
         })
 
