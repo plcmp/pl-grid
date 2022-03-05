@@ -252,6 +252,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         const resizeObserver = new ResizeObserver(entries => {
             let throttler = throttle(() => {
                 this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
+                this.reactToResize();
             }, 100)
 
             throttler();
