@@ -402,19 +402,19 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     _onTreeNodeClick(event) {
         event.stopPropagation();
-        if (event.model.row.__haschildren === false) {
+        if (event.model.row._haschildren === false) {
             return;
         }
         let idx = this._vdata.indexOf(event.model.row);
         this.set(`_vdata.${idx}._opened`, !event.model.row._opened);
         if (event.model.row._opened) {
-            this.showChilds(event.model.row);
+            this.showChildren(event.model.row);
         } else {
-            this.hideChilds(event.model.row);
+            this.hideChildren(event.model.row);
         }
     }
 
-    showChilds(item) {
+    showChildren(item) {
         let it = item;
 
         const pendingShow = [];
@@ -430,27 +430,27 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         if (addData.length > 0) {
             this.splice('_vdata', vindex + 1, 0, ...addData);
-            it._childsCount = addData.length;
+            it._childrenCount = addData.length;
             while (it._pitem) {
-                it._pitem._childsCount += item._childsCount;
+                it._pitem._childrenCount += item._childrenCount;
                 it = it._pitem;
             }
-            pendingShow.forEach(i => this.showChilds(i));
+            pendingShow.forEach(i => this.showChildren(i));
         } else if (this.partialData){
             // if no rows found with partial load for tree, add lazy load placeholder
             this.push('data', new PlaceHolder({ [this.pkeyField] :it[this.keyField], hid: it[this.keyField], _haschildren: false}));
         }
     }
 
-    hideChilds(item) {
+    hideChildren(item) {
         let it = item;
         const vindex = this._vdata.indexOf(it);
-        this.splice('_vdata', vindex + 1, it._childsCount);
+        this.splice('_vdata', vindex + 1, it._childrenCount);
         while (it._pitem) {
-            it._pitem._childsCount -= it._childsCount;
+            it._pitem._childrenCount -= it._childrenCount;
             it = it._pitem;
         }
-        item._childsCount = null;
+        item._childrenCount = null;
     }
 
     _getRowPadding(row, index) {
@@ -490,7 +490,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 if (!el._opened) {
                     const idx = this._vdata.indexOf(el);
                     this.set(`_vdata.${idx}._opened`, true);
-                    this.showChilds(el);
+                    this.showChildren(el);
                 }
             })
         }
@@ -507,15 +507,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     buildTree(key, pkey, hasChild) {
-        let hasChildField;
         const pKeys = new Set();
-        if (!hasChild && !this.partialData) {
+        if (!this.partialData) {
             this.data.forEach(e => { pKeys.add(e[pkey]); });
         }
         let vData = this.data.filter((i, c) => {
             i._index = c;
-            i._childsCount = null;
-            i._haschildren = hasChildField ? i[hasChildField] ?? true : pKeys.has(i[key]);
+            i._childrenCount = null;
+            i._haschildren = hasChild && this.partialData ? i[hasChild] ?? true : pKeys.has(i[key]);
             if (i[pkey] == null) {
                 i._level = 0;
                 return true;
@@ -567,10 +566,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             if (m.addedCount > 0) {
                 for (let i = m.index; i < (m.index + m.addedCount); i++) {
                     const item = this.data[i];
-
                     // проверяем, возможно для добаввленного элемента уже есть дочерние
-                    item._haschildren = this.hasChildField ? item[this.hasChildField] ?? true : this.data.some(i => i[this.pkeyField] == item[this.keyField]);
-
+                    item._haschildren = this.hasChildField && this.partialData ? item[this.hasChildField] ?? true : this.data.some(i => i[this.pkeyField] == item[this.keyField]);
                     let pIndex;
                     let parentItem;
                     // Если вставляемая запись не имеет ссылки на родителя, добавляем к корням
@@ -607,10 +604,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                                 insertIndex++;
                             }
 
-                            parentItem._childsCount = (parentItem._childsCount || 0) + 1;
+                            parentItem._childrenCount = (parentItem._childrenCount || 0) + 1;
                             let it = parentItem;
                             while (it._pitem) {
-                                it._pitem.__childsCount += 1;
+                                it._pitem._childrenCount += 1;
                                 it = it._pitem;
                             }
                             this.splice('_vdata', insertIndex, 0, item);
