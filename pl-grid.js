@@ -469,11 +469,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return row._opened ? '-' : '+';
     }
     _vdataObserver(val, old, mutation) {
-        //TODO: fix index translation for tree
-        // do not reflect splices from vdata root
         if (mutation && mutation.path !== '_vdata') {
-            let path = mutation.path.replace('_vdata', 'data');
-            this.dispatchEvent(new CustomEvent('data-changed', { detail: { ...mutation, path } }));
+            let path = normalizePath(mutation.path);
+            path[0] = 'data';
+            path[1] = this.data.indexOf(this._vdata[path[1]]);
+            this.dispatchEvent(new CustomEvent('data-changed', { detail: { ...mutation, path: path.join('.') } }));
         }
     }
     _selectedObserver(val) {
