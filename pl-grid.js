@@ -251,7 +251,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         
         const resizeObserver = new ResizeObserver(entries => {
             let throttler = throttle(() => {
-                this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
                 this.reactToResize();
             }, 100)
 
@@ -303,6 +302,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     reactToResize() {
         this.$.scroller.render();
+        this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
     }
 
     _init() {
@@ -353,6 +353,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     _changeColumnWidth(column, width) {
         this.set(`_columns.${column.index}.width`, width);
+        this.reactToResize();
     }
 
     _getSlotName(index) {
