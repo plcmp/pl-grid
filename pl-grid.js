@@ -17,7 +17,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return {
             data: { type: Array, value: () => [], observer: '_dataObserver' },
             selected: { type: Object, value: () => null, observer: '_selectedObserver' },
-            noFit: { type: Boolean, reflectToAttribute: true },
             tree: { type: Boolean, observer: '_treeModeChange' },
             partialData: { type: Boolean },
             _vdata: { type: Array, value: () => [], observer: '_vdataObserver' },
@@ -40,18 +39,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 position: relative;
                 box-sizing: border-box;
                 --pl-grid-cell-min-height: 40px;
-            }
-
-            :host([no-fit]) {
-                height: auto;
-            }
-
-            :host([no-fit]) #container {
-                height: auto;
-            }
-
-            :host([no-fit]) #container #rowsContainer{
-                height: auto;
             }
 
             #container {
