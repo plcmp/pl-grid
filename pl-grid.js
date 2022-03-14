@@ -262,6 +262,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             if (mutation.path === 'data.load') {
                 if (this.data !== this._vdata) { this._vdata.load = this.data.load }
             }
+
+            if(mutation.path === 'data.sorts') {
+                return
+            }
             //TODO: fix mutation translate for tree
             if (this.tree) {
                 this.applyTreeMutation(mutation);
