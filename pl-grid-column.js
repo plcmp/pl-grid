@@ -14,6 +14,10 @@ class PlGridColumn extends PlElement {
                 type: Number,
                 observer: '_columnWidthObserver'
             },
+            minWidth: {
+                type: Number,
+                value: 50
+            },
             field: {
                 type: String
             },
@@ -60,15 +64,15 @@ class PlGridColumn extends PlElement {
                 box-sizing: border-box;
                 flex-direction: row;
                 display: flex;
-                min-height: 32px;
+                min-height: var(--pl-grid-header-min-height);
                 overflow: hidden;
                 background: var(--grey-lightest);
-                color: var(--black-lightest);
                 z-index: 2;
 				position: sticky;
-                font: var(--font-sm);
+                font: var(--header-font);
+                color: var(--header-color);
                 will-change: width;
-                padding: 0 8px;
+                padding: 0 var(--space-sm);
             }
 
             :host([hidden]) {
@@ -85,7 +89,7 @@ class PlGridColumn extends PlElement {
                 width: 100%;
                 align-items: center;
                 flex-shrink: 0;
-                gap: 8px;
+                gap: var(--space-md);
             }
 
             .header-text {
@@ -98,7 +102,7 @@ class PlGridColumn extends PlElement {
             .column-resizer{
                 cursor: ew-resize;
                 height: 50%;
-                border-right: 1px solid var(--grey-light);
+                border-right: 1px solid var(--grey-dark);
                 right: 0;
                 position: absolute;
                 width: 2px;
@@ -106,6 +110,7 @@ class PlGridColumn extends PlElement {
 
             .column-sort {
                 cursor: pointer;
+                color: var(--grey-dark);
             }
         `;
     }
@@ -152,7 +157,7 @@ class PlGridColumn extends PlElement {
         event.preventDefault();
         const moveHandler = (event) => {
             let throttler = throttle(() => {
-                this.width = Math.max(50, this._resizeBase.baseSize + (event.screenX - this._resizeBase.baseMoveOffset));
+                this.width = Math.max(this.minWidth, this._resizeBase.baseSize + (event.screenX - this._resizeBase.baseMoveOffset));
             }, 100)
 
             throttler();

@@ -33,12 +33,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 				width: 100%;
                 height: 100%;
                 border: 1px solid var(--grey-light);
-                font: var(--font-sm);
+                border-radius: var(--border-radius);
                 display: flex;
                 flex-direction: column;
                 position: relative;
                 box-sizing: border-box;
-                --pl-grid-cell-min-height: 40px;
+                --pl-grid-cell-min-height: var(--base-size-lg);
+                --pl-grid-header-min-height: var(--base-size-md);
+                --pl-grid-active-color: var(--primary-lightest);
+                --pl-grid-active-text-color: var(--text-color);
             }
 
             #container {
@@ -60,7 +63,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
             #header{
                 display: flex;
-                min-height: 32px;
                 border-bottom: 1px solid var(--grey-light);
                 position: sticky;
                 top: 0;
@@ -94,18 +96,20 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             .row {
                 display: flex;
                 flex-direction: row;
+                border-top: 1px solid transparent;
                 border-bottom: 1px solid var(--grey-light);
                 background-color: white;
                 width: 100%;
                 flex-shrink: 0;
+                box-sizing: border-box;
             }
 
             .cell{
                 display: flex;
-                padding: 0 8px; 
+                padding: var(--space-xs) var(--space-sm); 
                 align-items: center;
-                min-height: var(--pl-grid-cell-min-height);
-                color: black;
+                height: var(--pl-grid-cell-min-height);
+                color: var(--text-color);
                 overflow: hidden;
                 background-color: inherit;
                 will-change: width;
@@ -134,19 +138,23 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 display: none;
             }
 
+            .row:hover, .row[active] {
+                border: 1px solid var(--primary-base);
+            }
+
             .row:hover, 
-            .row:hover .cell[fixed], .row:hover .cell[action],
+            .row:hover .cell,
             .row[active], 
-            .row[active] .cell[fixed], .row[active] .cell[action]{
+            .row[active] .cell{
                 white-space: normal;
-                background-color: var(--primary-lightest);
-                --pl-icon-fill-color: var(--black-base);
+                background-color: var(--pl-grid-active-color);
+                color: var(--pl-grid-active-text-color);
+                --pl-icon-fill-color: var(--pl-grid-active-text-color);
             }
 
             .tree-cell {
                 cursor: pointer;
-                width: 16px;
-                padding-right: 8px;
+                width: var(--base-size-xs);
                 user-select: none;
             }
 
@@ -159,18 +167,17 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
 
             .top-toolbar ::slotted(*) {
-                min-height: 48px;
                 width: 100%;
-                padding: 8px;
-                gap: 8px;
+                padding: var(--space-sm);
                 box-sizing: border-box;
+                border-bottom: 1px solid var(--grey-light);
+
             }
 
             .bottom-toolbar ::slotted(*) {
-                min-height: 48px;
+                border-top: 1px solid var(--grey-light);
                 width: 100%;
-                padding: 8px;
-                gap: 8px;
+                padding: var(--space-sm);
                 box-sizing: border-box;
             }
 
@@ -249,6 +256,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         })
 
         resizeObserver.observe(this.$.headerContainer);
+
+        const observer = new MutationObserver((mutationsList, observer) => {
+            for (let mutation of mutationsList) {
+                if (mutation.type === 'childList') {
+                    this._init();
+                }
+        }});
+
+        observer.observe(this, { attributes: false, childList: true, subtree: true });
     }
 
     _dataObserver(val, _old, mutation) {
