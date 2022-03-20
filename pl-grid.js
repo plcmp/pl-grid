@@ -39,7 +39,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 position: relative;
                 box-sizing: border-box;
                 --pl-grid-cell-min-height: var(--base-size-lg);
-                --pl-grid-header-min-height: var(--base-size-md);
+                --pl-grid-header-min-height: var(--base-size-lg);
                 --pl-grid-active-color: var(--primary-lightest);
                 --pl-grid-active-text-color: var(--text-color);
             }
@@ -98,7 +98,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 flex-direction: row;
                 border-top: 1px solid transparent;
                 border-bottom: 1px solid var(--grey-light);
-                background-color: white;
+                background-color: var(--background-color);
                 width: 100%;
                 flex-shrink: 0;
                 box-sizing: border-box;
