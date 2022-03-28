@@ -507,7 +507,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     _treeModeChange(tree) {
         if (this.data.control && tree) {
             this.data.control.treeMode = {
-                hidValue: null,
+                hidValue: undefined,
                 keyField: this.keyField,
                 hidField: this.pkeyField
             };
