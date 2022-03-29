@@ -138,10 +138,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 display: none;
             }
 
-            .row:hover, .row[active] {
-                border: 1px solid var(--primary-base);
-            }
-
             .row:hover, 
             .row:hover .cell,
             .row[active], 
