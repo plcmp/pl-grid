@@ -1,6 +1,5 @@
 import { PlElement, html, css } from "polylib";
 
-import '@plcmp/pl-repeat';
 import '@plcmp/pl-virtual-scroll';
 
 import "@plcmp/pl-icon";
@@ -191,29 +190,25 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="container">
                 <div id="headerContainer">
                     <div id="header">
-                        <pl-repeat items="[[_columns]]" as="column">
-                            <template>
-                                <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width)]]">
-                                    <slot name="[[_getSlotName(column.index)]]"></slot>
-                                </div>
-                            </template>
-                        </pl-repeat>
+                        <template d:repeat="[[_columns]]" d:as="column">
+                            <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width)]]">
+                                <slot name="[[_getSlotName(column.index)]]"></slot>
+                            </div>
+                        </template>
                     </div>
                 </div>
                 <div id="rowsContainer">
                     <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
                         <template id="tplRow">
                             <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
-                                <pl-repeat items="[[_columns]]" as="column" id="cell-repeater">
-                                    <template id="tplCol">
-                                        <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
-                                            <span class="tree-cell" style=[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
-                                                [[_getTreeIcon(row)]]
-                                            </span>
-                                            <span class="cell-content">[[column.cellTemplate]]</span>
-                                        </div>
-                                    </template>
-                                </pl-repeat>
+                                <template id="tplCol" d:repeat="[[_columns]]" d:as="column" id="cell-repeater">
+                                    <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                        <span class="tree-cell" style=[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
+                                            [[_getTreeIcon(row)]]
+                                        </span>
+                                        <span class="cell-content">[[column.cellTemplate]]</span>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                     </pl-virtual-scroll>
