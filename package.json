@@ -23,7 +23,7 @@
         }
     ],
     "dependencies": {
-        "polylib": "^1.0.0",
+        "polylib": "^1.1.0",
         "dayjs": "^1.10.7",
         "@plcmp/pl-virtual-scroll": "^0.1.0",
         "@plcmp/utils": "^0.1.0",
