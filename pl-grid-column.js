@@ -133,14 +133,16 @@ class PlGridColumn extends PlElement {
 
     connectedCallback() {
         super.connectedCallback();
-        let tplEl = this.querySelector('template');
+        let tplEl = [...this.childNodes].find( n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'))?._tpl;
         if (tplEl) {
-            this._cellTemplate = tplEl.tpl;
+            this._cellTemplate = tplEl;
+            this._cellTemplate._hctx = [...this._cellTemplate._hctx, this];
         }
         else {
             this._cellTemplate = html`[[_getValue(row, field, kind, format)]]`;
+            this._cellTemplate._hctx = [this];
         }
-        this._cellTemplate._hti = tplEl?._hti || this._ti;
+
     }
 
     _sortableHidden(sortable) {
