@@ -334,7 +334,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
 
     _changeColumnSort(column, sort) {
-        let sorts = this.data.sorts || [];
+        let sorts = [...this.data.sorts] || [];
         const ind = sorts.findIndex(item => item.field == column.field);
         if (ind >= 0) {
             sorts.splice(ind, 1);
