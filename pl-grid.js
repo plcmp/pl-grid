@@ -4,6 +4,7 @@ import '@plcmp/pl-virtual-scroll';
 
 import "@plcmp/pl-icon";
 import "@plcmp/pl-iconset-default";
+import "@plcmp/pl-data-tree";
 
 import {PlaceHolder, PlResizeableMixin } from '@plcmp/utils';
 
@@ -14,11 +15,11 @@ import { throttle } from "@plcmp/utils";
 class PlGrid extends PlResizeableMixin(PlElement) {
     static get properties() {
         return {
-            data: { type: Array, value: () => [], observer: '_dataObserver' },
+            data: { type: Array, value: () => [] },
             selected: { type: Object, value: () => null, observer: '_selectedObserver' },
             tree: { type: Boolean, observer: '_treeModeChange' },
             partialData: { type: Boolean,  observer: '_treeModeChange' },
-            _vdata: { type: Array, value: () => [], observer: '_vdataObserver' },
+            _vdata: { type: Array, value: () => [] },
             _columns: { type: Array, value: () => [] },
             keyField: { type: String },
             pkeyField: { type: String },
@@ -217,6 +218,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div class="bottom-toolbar">
                 <slot name="bottom-toolbar"></slot>
             </div>
+            <pl-data-tree bypass="[[!tree]]"  key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]" partial-data="[[partialData]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
         `;
     }
 
@@ -258,34 +260,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         observer.observe(this, { attributes: false, childList: true, subtree: true });
     }
 
-    _dataObserver(val, _old, mutation) {
-        if (!mutation || (mutation.path === 'data' && mutation.action === 'upd')) {
-            if (this.tree) {
-                this.set('_vdata', this.buildTree(this.keyField, this.pkeyField, this.hasChildField));
-            } else {
-                this.set('_vdata', val);
-            }
-        } else {
-            if (mutation.path === 'data.load') {
-                if (this.data !== this._vdata) { this._vdata.load = this.data.load }
-            }
 
-            if(mutation.path === 'data.sorts') {
-                return
-            }
-            //TODO: fix mutation translate for tree
-            if (this.tree) {
-                this.applyTreeMutation(mutation);
-            } else {
-                //TODO: path can be array
-                let translatedPath = mutation.path.replace('data', '_vdata');
-                // translate mutation with resenting watermark,
-                // we need to new mutation cycle for apply nested change
-                mutation = { ...mutation, path: translatedPath };
-                this.notifyChange(mutation);
-            }
-        }
-    }
 
     onColumnAttributeChange(event) {
         const { index, attribute, value } = event.detail;
@@ -466,14 +441,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         return row._opened ? '-' : '+';
     }
-    _vdataObserver(val, old, mutation) {
-        if (mutation && mutation.path !== '_vdata') {
-            let path = normalizePath(mutation.path);
-            path[0] = 'data';
-            path[1] = this.data.indexOf(this._vdata[path[1]]);
-            this.dispatchEvent(new CustomEvent('data-changed', { detail: { ...mutation, path: path.join('.') } }));
-        }
-    }
+
     _selectedObserver(val) {
         if (!val) {
             return;
@@ -494,7 +462,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             })
         }
     }
-
     _treeModeChange() {
         if (this.data.control && this.tree && this.partialData) {
             this.data.control.treeMode = {
@@ -507,125 +474,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
     }
 
-    buildTree(key, pkey, hasChild) {
-        const pKeys = new Set();
-        if (!this.partialData) {
-            this.data.forEach(e => { pKeys.add(e[pkey]); });
-        }
-        let vData = this.data.filter((i, c) => {
-            i._index = c;
-            i._childrenCount = null;
-            i._haschildren = hasChild && this.partialData ? i[hasChild] ?? true : pKeys.has(i[key]);
-            if (i[pkey] == null) {
-                i._level = 0;
-                return true;
-            }
-        });
-        vData.load = this.data.load
-        return vData;
-    }
 
-    /**
-     * Apply data splice mutation to tree in virtual data
-     * @param {DataMutation} m
-     */
-    applyTreeMutation(m) {
-        function indexesToRanges(arr) {
-            return arr.sort((a, b) => a - b).reduce((a, i) => {
-                if (a[0]?.end === i - 1) {
-                    a[0].end = i;
-                } else {
-                    a.unshift({ start: i, end: i });
-                }
-                return a;
-            }, []).reverse();
-        }
-        /*
-        action: "splice"
-        added: (411) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, …]
-        addedCount: 411
-        deleted: ControlledArray [filters: Array(0), sorts: Array(0), control: {…}]
-        deletedCount: 0
-        index: 0
-        path: "data"
-        target: ControlledArray(411) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, …]
-        wmh: 99
-         */
-        if (m.path === 'data' && m.action === 'splice') {
-            // delete
-            if (m.deletedCount > 0) {
-                let di = m.deleted.map(i => this._vdata.indexOf(i)).filter(i => i >= 0);
-                let delRanges = indexesToRanges(di);
-                delRanges.forEach(rr => this.splice('_vdata', rr.start, rr.end - rr.start + 1));
-            }
-            // add
-            // Обновляем индексы
-            this.data.forEach((e, i) => {
-                e._index = i;
-            });
-            // Вставляем в нужные места добавленные элементы
-            if (m.addedCount > 0) {
-                for (let i = m.index; i < (m.index + m.addedCount); i++) {
-                    const item = this.data[i];
-                    // проверяем, возможно для добаввленного элемента уже есть дочерние
-                    item._haschildren = this.hasChildField && this.partialData ? item[this.hasChildField] ?? true : this.data.some(i => i[this.pkeyField] == item[this.keyField]);
-                    let pIndex;
-                    let parentItem;
-                    // Если вставляемая запись не имеет ссылки на родителя, добавляем к корням
-                    if (!item[this.pkeyField]) {
-                        pIndex = -1;
-                        parentItem = {
-                            code: null, _level: -1, _opened: true, [this.keyField]: item[this.pkeyField]
-                        };
-                    } else {
-                        // Ищем родителя для вставки
-                        pIndex = this._vdata.findIndex(vi => vi[this.keyField] == item[this.pkeyField]);
-                        if (pIndex >= 0) {
-                            parentItem = this._vdata[pIndex];
-                            if (!parentItem._haschildren) this.set(['_vdata', pIndex, '_haschildren'], true);
-                        }
-                    }
-                    // Если родитель нашелся и он раскрыт, ищем куда в нем вставлять
-                    if (pIndex >= 0 || !item[this.pkeyField]) {
-                        if (parentItem._opened) {
-                            // Ищем потомка с индексом больше чем у того что нужно вставить,
-                            // либо до конца текущего узла (если добавлять в конец)
-                            // и вставляем элемент в найденную позицию
 
-                            item._level = parentItem._level + 1;
-                            // item.__haschildren = this.hasChildField ? item[this.hasChildField] : false;
-                            item._pitem = parentItem;
-                            ////if (this.dataMode == 'tree' && item.__haschildren) item.__needLoad = true;
-                            let insertIndex = pIndex + 1;
-                            while (this._vdata.length > insertIndex && this._vdata[insertIndex]._level > parentItem._level) {
-                                if (this._vdata[insertIndex][this.pkeyField] == parentItem[this.keyField] && this._vdata[insertIndex]._index > item._index) {
-                                    // нашли потомка с большим индексом
-                                    break;
-                                }
-                                insertIndex++;
-                            }
 
-                            parentItem._childrenCount = (parentItem._childrenCount || 0) + 1;
-                            let it = parentItem;
-                            while (it._pitem) {
-                                it._pitem._childrenCount += 1;
-                                it = it._pitem;
-                            }
-                            this.splice('_vdata', insertIndex, 0, item);
-                        }
-                    }
-                }
-            }
-        } else {
-            // translate mutation from 'data' to 'vdata'
-            let path = normalizePath(m.path);
-            path[0] = '_vdata';
-            path[1] = this._vdata.indexOf(this.data[path[1]]);
-            if (path[1] >=0) {
-                this.notifyChange({...m, path: path.join('.')});
-            }
-        }
-    }
 }
 
 customElements.define('pl-grid', PlGrid);

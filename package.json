@@ -1,6 +1,6 @@
 {
     "name": "@plcmp/pl-grid",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "description": "Simple table component.",
     "main": "pl-grid.js",
     "repository": {
@@ -29,6 +29,7 @@
         "@plcmp/utils": "^0.1.0",
         "@plcmp/pl-repeat": "^0.1.0",
         "@plcmp/pl-icon": "^0.1.0",
-        "@plcmp/pl-iconset-default": "^0.1.0"
+        "@plcmp/pl-iconset-default": "^0.1.0",
+        "@plcmp/pl-data-tree" : "^0.1.0"
     }
 }
