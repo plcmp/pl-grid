@@ -133,10 +133,11 @@ class PlGridColumn extends PlElement {
 
     connectedCallback() {
         super.connectedCallback();
-        let tplEl = [...this.childNodes].find( n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'))?._tpl;
+        let tplEl = [...this.childNodes].find( n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'));
         if (tplEl) {
-            this._cellTemplate = tplEl;
-            this._cellTemplate._hctx = [...this._cellTemplate._hctx, this];
+            // host context can be assigned to template
+            this._cellTemplate = tplEl?._tpl;
+            this._cellTemplate._hctx = [...tplEl._hctx, this];
         }
         else {
             this._cellTemplate = html`[[_getValue(row, field, kind, format)]]`;
