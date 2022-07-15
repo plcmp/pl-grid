@@ -1,4 +1,4 @@
-import { PlElement, html, css } from "polylib";
+import {css, html, PlElement} from "polylib";
 
 import '@plcmp/pl-virtual-scroll';
 
@@ -6,11 +6,9 @@ import "@plcmp/pl-icon";
 import "@plcmp/pl-iconset-default";
 import "@plcmp/pl-data-tree";
 
-import {PlaceHolder, PlResizeableMixin } from '@plcmp/utils';
+import {PlResizeableMixin, throttle} from '@plcmp/utils';
 
 import "./pl-grid-column.js";
-import {normalizePath} from "polylib/common.js";
-import { throttle } from "@plcmp/utils";
 
 class PlGrid extends PlResizeableMixin(PlElement) {
     static get properties() {
@@ -90,7 +88,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 position: relative;
                 display: flex;
                 flex-direction: column;
-				width: 100%;
             }
 
             .row {
@@ -202,7 +199,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
                         <template id="tplRow">
                             <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
-                                <template id="tplCol" d:repeat="[[_columns]]" d:as="column" id="cell-repeater">
+                                <template d:repeat="[[_columns]]" d:as="column">
                                     <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
                                         <span class="tree-cell" style=[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
                                             [[_getTreeIcon(row)]]
@@ -236,7 +233,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
         
-        const resizeObserver = new ResizeObserver(entries => {
+        const resizeObserver = new ResizeObserver(() => {
             let throttler = throttle(() => {
                 this.reactToResize();
             }, 100)
@@ -250,7 +247,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         resizeObserver.observe(this.$.headerContainer);
 
-        const observer = new MutationObserver((mutationsList, observer) => {
+        const observer = new MutationObserver((mutationsList) => {
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList') {
                     this._init();
@@ -280,7 +277,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     _init() {
         const columnsNodes = Array.prototype.slice.call(this.querySelectorAll('pl-grid-column'));
-        const _columns = columnsNodes.map((column, index) => {
+        this._columns = columnsNodes.map((column, index) => {
             column.setAttribute('slot', `column-${index}`);
             const info = {
                 kind: column.kind,
@@ -298,19 +295,17 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             column._index = index;
             return info;
         });
-
-        this._columns = _columns;
         this.reactToResize();
     }
 
     _isRowActive(row, selected) {
-        return row == selected;
+        return row === selected;
     }
 
 
     _changeColumnSort(column, sort) {
         let sorts = [...this.data.sorts] || [];
-        const ind = sorts.findIndex(item => item.field == column.field);
+        const ind = sorts.findIndex(item => item.field === column.field);
         if (ind >= 0) {
             sorts.splice(ind, 1);
         }
@@ -348,7 +343,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         if (column.fixed) {
-            const left = column.index == 0 ? '0' : this._ti._pti ? this._ti._pti.ctx._columns[column.index - 1].width + 'px' : this._ti.ctx._columns[column.index - 1].width + 'px';
+            const left = column.index === 0 ? '0' : this._ti._pti ? this._ti._pti.ctx._columns[column.index - 1].width + 'px' : this._ti.ctx._columns[column.index - 1].width + 'px';
             style.push(`left: ${left}`);
         }
 
@@ -379,56 +374,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         if (event.model.row._haschildren === false) {
             return;
         }
-        let idx = this._vdata.indexOf(event.model.row);
-        this.set(`_vdata.${idx}._opened`, !event.model.row._opened);
-        if (event.model.row._opened) {
-            this.showChildren(event.model.row);
-        } else {
-            this.hideChildren(event.model.row);
-        }
-    }
-
-    showChildren(item) {
-        let it = item;
-
-        const pendingShow = [];
-        const vindex = this._vdata.indexOf(it);
-        const addData = this.data.filter((i, c) => {
-            if (i[this.pkeyField] == it[this.keyField]) {
-                i._level = it._level + 1;
-                if (i._opened) pendingShow.push(i);
-                i._pitem = it;
-                return true;
-            }
-        });
-
-        if (addData.length > 0) {
-            this.splice('_vdata', vindex + 1, 0, ...addData);
-            it._childrenCount = addData.length;
-            while (it._pitem) {
-                it._pitem._childrenCount += item._childrenCount;
-                it = it._pitem;
-            }
-            pendingShow.forEach(i => this.showChildren(i));
-        } else if (this.partialData){
-            // if no rows found with partial load for tree, add lazy load placeholder
-            this.push('data', new PlaceHolder({ [this.pkeyField] :it[this.keyField], hid: it[this.keyField], _haschildren: false}));
-        }
-    }
-
-    hideChildren(item) {
-        let it = item;
-        const vindex = this._vdata.indexOf(it);
-        this.splice('_vdata', vindex + 1, it._childrenCount);
-        while (it._pitem) {
-            it._pitem._childrenCount -= it._childrenCount;
-            it = it._pitem;
-        }
-        item._childrenCount = null;
+        let idx = this.data.indexOf(event.model.row);
+        this.set(`data.${idx}._opened`, !event.model.row._opened);
     }
 
     _getRowPadding(row, index) {
-        if (index == 0 && (this.tree)) {
+        if (index === 0 && (this.tree)) {
             return `padding-left: ${row._level * 16 + 'px'}`;
         }
         return 'display:none;';
