@@ -5,132 +5,126 @@ import { throttle } from "@plcmp/utils";
 import dayjs from 'dayjs/esm/index.js';
 
 class PlGridColumn extends PlElement {
-    static get properties() {
-        return {
-            header: {
-                type: String
-            },
-            width: {
-                type: Number,
-                observer: '_columnWidthObserver'
-            },
-            minWidth: {
-                type: Number,
-                value: 50
-            },
-            field: {
-                type: String
-            },
-            hidden: {
-                type: Boolean,
-                reflectToAttribute: true
-            },
-            kind: {
-                type: String
-            },
-            format: {
-                type: String
-            },
-            resizable: {
-                type: Boolean
-            },
-            sortable: {
-                type: Boolean
-            },
-            sort: {
-                type: String
-            },
-            fixed: {
-                type: Boolean
-            },
-            action: {
-                type: Boolean
-            },
-            _index: {
-                type: Number
-            },
-            _template: {
-                type: Object
-            },
-            _cellTemplate: {
-                type: Object
-            }
+    static  properties = {
+        header: {
+            type: String
+        },
+        width: {
+            type: Number,
+            observer: '_columnWidthObserver'
+        },
+        minWidth: {
+            type: Number,
+            value: 50
+        },
+        field: {
+            type: String
+        },
+        hidden: {
+            type: Boolean,
+            reflectToAttribute: true
+        },
+        kind: {
+            type: String
+        },
+        format: {
+            type: String
+        },
+        resizable: {
+            type: Boolean
+        },
+        sortable: {
+            type: Boolean
+        },
+        sort: {
+            type: String
+        },
+        fixed: {
+            type: Boolean
+        },
+        action: {
+            type: Boolean
+        },
+        _index: {
+            type: Number
+        },
+        _template: {
+            type: Object
+        },
+        _cellTemplate: {
+            type: Object
         }
     }
 
-    static get css() {
-        return css`
-            :host{
-                box-sizing: border-box;
-                flex-direction: row;
-                display: flex;
-                min-height: var(--pl-grid-header-min-height);
-                overflow: hidden;
-                background: var(--grey-lightest);
-                z-index: 2;
-				position: sticky;
-                font: var(--header-font);
-                color: var(--header-color);
-                will-change: width;
-                padding: 0 var(--space-sm);
-            }
+    static  css = css`
+        :host{
+            box-sizing: border-box;
+            flex-direction: row;
+            display: flex;
+            min-height: var(--pl-grid-header-min-height);
+            overflow: hidden;
+            background: var(--grey-lightest);
+            z-index: 2;
+            position: sticky;
+            font: var(--header-font);
+            color: var(--header-color);
+            will-change: width;
+            padding: 0 var(--space-sm);
+        }
 
-            :host([hidden]) {
-                display: none;
-            }
+        :host([hidden]) {
+            display: none;
+        }
 
-            :host ::slotted(*) {
-                width: 16px;
-                height: 16px;
-            }
+        :host ::slotted(*) {
+            width: 16px;
+            height: 16px;
+        }
 
-            .header {
-                display: flex;
-                width: 100%;
-                align-items: center;
-                flex-shrink: 0;
-                gap: var(--space-md);
-            }
+        .header {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            flex-shrink: 0;
+            gap: var(--space-md);
+        }
 
-            .header-text {
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                width: 100%;
-            }
+        .header-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
 
-            .column-resizer{
-                cursor: ew-resize;
-                height: 50%;
-                border-right: 1px solid var(--grey-dark);
-                right: 0;
-                position: absolute;
-                width: 2px;
-            }
+        .column-resizer{
+            cursor: ew-resize;
+            height: 50%;
+            border-right: 1px solid var(--grey-dark);
+            right: 0;
+            position: absolute;
+            width: 2px;
+        }
 
-            .column-sort {
-                cursor: pointer;
-                color: var(--grey-dark);
-            }
-        `;
-    }
+        .column-sort {
+            cursor: pointer;
+            color: var(--grey-dark);
+        }
+    `;
 
-    static get template() {
-        return html`
-            <div class="header">
-                <slot name="prefix"></slot>
-                <span class="header-text">
-                    [[header]]
-                </span>
-                <span hidden$="[[_sortableHidden(sortable)]]" class="column-sort" on-click="[[_onSortClick]]">
-                    <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
-                </span>
-                <span hidden$="[[_resizableHiden(resizable)]]" class="column-resizer" on-mousedown="[[onResize]]">
-                </span>
-            </div>
-        `;
-    }
-
+    static template = html`
+        <div class="header">
+            <slot name="prefix"></slot>
+            <span class="header-text">
+                [[header]]
+            </span>
+            <span hidden$="[[_sortableHidden(sortable)]]" class="column-sort" on-click="[[_onSortClick]]">
+                <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
+            </span>
+            <span hidden$="[[_resizableHiden(resizable)]]" class="column-resizer" on-mousedown="[[onResize]]">
+            </span>
+        </div>
+    `;
+    
     connectedCallback() {
         super.connectedCallback();
         let tplEl = [...this.childNodes].find( n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'));

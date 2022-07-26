@@ -1,4 +1,4 @@
-import {css, html, PlElement} from "polylib";
+import { css, html, PlElement } from "polylib";
 
 import '@plcmp/pl-virtual-scroll';
 
@@ -6,218 +6,213 @@ import "@plcmp/pl-icon";
 import "@plcmp/pl-iconset-default";
 import "@plcmp/pl-data-tree";
 
-import {PlResizeableMixin, throttle} from '@plcmp/utils';
+import { PlResizeableMixin, throttle } from '@plcmp/utils';
 
 import "./pl-grid-column.js";
 
 class PlGrid extends PlResizeableMixin(PlElement) {
-    static get properties() {
-        return {
-            data: { type: Array, value: () => [] },
-            selected: { type: Object, value: () => null, observer: '_selectedObserver' },
-            tree: { type: Boolean, observer: '_treeModeChange' },
-            partialData: { type: Boolean,  observer: '_treeModeChange' },
-            _vdata: { type: Array, value: () => [] },
-            _columns: { type: Array, value: () => [] },
-            keyField: { type: String },
-            pkeyField: { type: String },
-            hasChildField: { type: String, value: '_haschildren' }
+    static properties = {
+        data: { type: Array, value: () => [], observer: '_dataObserver' },
+        selected: { type: Object, value: () => null, observer: '_selectedObserver' },
+        tree: { type: Boolean, observer: '_treeModeChange' },
+        partialData: { type: Boolean, observer: '_treeModeChange' },
+        _vdata: { type: Array, value: () => [] },
+        _columns: { type: Array, value: () => [] },
+        keyField: { type: String },
+        pkeyField: { type: String },
+        hasChildField: { type: String, value: '_haschildren' }
+    }
+
+    static css = css`
+        :host {
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--grey-light);
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-sizing: border-box;
+            --pl-grid-cell-min-height: var(--base-size-lg);
+            --pl-grid-header-min-height: var(--base-size-lg);
+            --pl-grid-active-color: var(--primary-lightest);
+            --pl-grid-active-text-color: var(--text-color);
         }
-    }
 
-    static get css() {
-        return css`
-            :host {
-				width: 100%;
-                height: 100%;
-                border: 1px solid var(--grey-light);
-                border-radius: var(--border-radius);
-                display: flex;
-                flex-direction: column;
-                position: relative;
-                box-sizing: border-box;
-                --pl-grid-cell-min-height: var(--base-size-lg);
-                --pl-grid-header-min-height: var(--base-size-lg);
-                --pl-grid-active-color: var(--primary-lightest);
-                --pl-grid-active-text-color: var(--text-color);
-            }
+        #container {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            contain: strict;
+            position: relative;
+        }
 
-            #container {
-				width: 100%;
-                height: 100%;
-                overflow: auto;
-                contain: strict;
-                position: relative;
-            }
+        #headerContainer{
+            display: flex;
+            width: 100%;
+            position: sticky;
+            background-color: var(--grey-lightest);
+            z-index: 1;
+            top: 0;
+        }
 
-            #headerContainer{
-                display: flex;
-				width: 100%;
-				position: sticky;
-                background-color: var(--grey-lightest);
-				z-index: 1;
-				top: 0;
-            }
+        #header{
+            display: flex;
+            border-bottom: 1px solid var(--grey-light);
+            position: sticky;
+            top: 0;
+            flex: 1;
+            will-change: width;
+        }
 
-            #header{
-                display: flex;
-                border-bottom: 1px solid var(--grey-light);
-                position: sticky;
-                top: 0;
-                flex: 1;
-                will-change: width;
-            }
+        .headerEl[fixed], 
+        .headerEl[action]  {
+            position: sticky;
+            z-index: 3;
+        }
 
-            .headerEl[fixed], 
-            .headerEl[action]  {
-                position: sticky;
-                z-index: 3;
-            }
+        .headerEl[action] {
+            right: 0;
+        }
+        
+        .headerEl[hidden] {
+            display: none;
+        }
 
-            .headerEl[action] {
-                right: 0;
-            }
-            
-            .headerEl[hidden] {
-                display: none;
-            }
+        #rowsContainer {
+            height: 100%;
+            width: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
 
-            #rowsContainer {
-                height: 100%;
-                width: 100%;
-                position: relative;
-                display: flex;
-                flex-direction: column;
-            }
+        .row {
+            display: flex;
+            flex-direction: row;
+            border-top: 1px solid transparent;
+            border-bottom: 1px solid var(--grey-light);
+            background-color: var(--background-color);
+            width: 100%;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
 
-            .row {
-                display: flex;
-                flex-direction: row;
-                border-top: 1px solid transparent;
-                border-bottom: 1px solid var(--grey-light);
-                background-color: var(--background-color);
-                width: 100%;
-                flex-shrink: 0;
-                box-sizing: border-box;
-            }
+        .cell{
+            display: flex;
+            padding: var(--space-xs) var(--space-sm); 
+            align-items: center;
+            height: var(--pl-grid-cell-min-height);
+            color: var(--text-color);
+            overflow: hidden;
+            background-color: inherit;
+            will-change: width;
+            position: sticky;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
 
-            .cell{
-                display: flex;
-                padding: var(--space-xs) var(--space-sm); 
-                align-items: center;
-                height: var(--pl-grid-cell-min-height);
-                color: var(--text-color);
-                overflow: hidden;
-                background-color: inherit;
-                will-change: width;
-                position: sticky;
-                box-sizing: border-box;
-                flex-shrink: 0;
-                white-space: nowrap;
-            }
+        .cell[fixed] {
+            position: sticky;
+            border-right: 1px solid var(--grey-light);
+            background-color: var(--grey-lightest);
+            z-index:1;
+        }
 
-            .cell[fixed] {
-                position: sticky;
-                border-right: 1px solid var(--grey-light);
-                background-color: var(--grey-lightest);
-                z-index:1;
-            }
+        .cell[action] {
+            position: sticky;
+            right: 0;
+            border-left: 1px solid var(--grey-light);
+            background-color: var(--grey-lightest);
+            z-index:1;
+        }
 
-            .cell[action] {
-                position: sticky;
-                right: 0;
-                border-left: 1px solid var(--grey-light);
-                background-color: var(--grey-lightest);
-                z-index:1;
-            }
+        .cell[hidden] {
+            display: none;
+        }
 
-            .cell[hidden] {
-                display: none;
-            }
+        .row:hover, 
+        .row:hover .cell,
+        .row[active], 
+        .row[active] .cell{
+            white-space: normal;
+            background-color: var(--pl-grid-active-color);
+            color: var(--pl-grid-active-text-color);
+            --pl-icon-fill-color: var(--pl-grid-active-text-color);
+        }
 
-            .row:hover, 
-            .row:hover .cell,
-            .row[active], 
-            .row[active] .cell{
-                white-space: normal;
-                background-color: var(--pl-grid-active-color);
-                color: var(--pl-grid-active-text-color);
-                --pl-icon-fill-color: var(--pl-grid-active-text-color);
-            }
+        .tree-cell {
+            cursor: pointer;
+            width: var(--base-size-xs);
+            user-select: none;
+        }
 
-            .tree-cell {
-                cursor: pointer;
-                width: var(--base-size-xs);
-                user-select: none;
-            }
+        .cell-content {
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background-color: inherit;
+        }
 
-            .cell-content {
-                width: 100%;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                background-color: inherit;
-            }
+        .top-toolbar ::slotted(*) {
+            width: 100%;
+            padding: var(--space-sm);
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--grey-light);
 
-            .top-toolbar ::slotted(*) {
-                width: 100%;
-                padding: var(--space-sm);
-                box-sizing: border-box;
-                border-bottom: 1px solid var(--grey-light);
+        }
 
-            }
+        .bottom-toolbar ::slotted(*) {
+            border-top: 1px solid var(--grey-light);
+            width: 100%;
+            padding: var(--space-sm);
+            box-sizing: border-box;
+        }
 
-            .bottom-toolbar ::slotted(*) {
-                border-top: 1px solid var(--grey-light);
-                width: 100%;
-                padding: var(--space-sm);
-                box-sizing: border-box;
-            }
+        pl-virtual-scroll {
+            display: none;
+        }
+    `;
 
-            pl-virtual-scroll {
-                display: none;
-            }
-		`;
-    }
-
-    static get template() {
-        return html`
-            <div class="top-toolbar">
-                <slot name="top-toolbar"></slot>
-            </div>
-            <div id="container">
-                <div id="headerContainer">
-                    <div id="header">
-                        <template d:repeat="[[_columns]]" d:as="column">
-                            <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width)]]">
-                                <slot name="[[_getSlotName(column.index)]]"></slot>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-                <div id="rowsContainer">
-                    <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
-                        <template id="tplRow">
-                            <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
-                                <template d:repeat="[[_columns]]" d:as="column">
-                                    <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
-                                        <span class="tree-cell" style=[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
-                                            [[_getTreeIcon(row)]]
-                                        </span>
-                                        <span class="cell-content">[[column.cellTemplate]]</span>
-                                    </div>
-                                </template>
-                            </div>
-                        </template>
-                    </pl-virtual-scroll>
+    static template = html`
+        <div class="top-toolbar">
+            <slot name="top-toolbar"></slot>
+        </div>
+        <div id="container">
+            <div id="headerContainer">
+                <div id="header">
+                    <template d:repeat="[[_columns]]" d:as="column">
+                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width)]]">
+                            <slot name="[[_getSlotName(column.index)]]"></slot>
+                        </div>
+                    </template>
                 </div>
             </div>
-            <div class="bottom-toolbar">
-                <slot name="bottom-toolbar"></slot>
+            <div id="rowsContainer">
+                <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
+                    <template id="tplRow">
+                        <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
+                            <template d:repeat="[[_columns]]" d:as="column">
+                                <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                    <span class="tree-cell" style$="[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
+                                        [[_getTreeIcon(row)]]
+                                    </span>
+                                    <span class="cell-content">[[column.cellTemplate]]</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </pl-virtual-scroll>
             </div>
-            <pl-data-tree bypass="[[!tree]]"  key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]" partial-data="[[partialData]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
-        `;
-    }
+        </div>
+        <div class="bottom-toolbar">
+            <slot name="bottom-toolbar"></slot>
+        </div>
+        <pl-data-tree bypass="[[!tree]]" key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]"
+            partial-data="[[partialData]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
+    `;
 
     connectedCallback() {
         super.connectedCallback();
@@ -229,10 +224,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     this.data.control.treeMode.keyField = this.keyField;
                 }
             }
-            }, 0);
+        }, 0);
 
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
-        
+
         const resizeObserver = new ResizeObserver(() => {
             let throttler = throttle(() => {
                 this.reactToResize();
@@ -252,12 +247,19 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 if (mutation.type === 'childList') {
                     this._init();
                 }
-        }});
+            }
+        });
 
         observer.observe(this, { attributes: false, childList: true, subtree: true });
     }
 
-
+    _dataObserver(data, old, mut) {
+        if (mut.action == 'splice' && mut.path == 'data') {
+            if(mut?.deleted.includes(this.selected)) {
+                this.selected = null;
+            }
+        }
+    }
 
     onColumnAttributeChange(event) {
         const { index, attribute, value } = event.detail;
