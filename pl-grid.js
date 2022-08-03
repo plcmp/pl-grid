@@ -142,12 +142,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             --pl-icon-fill-color: var(--pl-grid-active-text-color);
         }
 
-        .tree-cell {
-            cursor: pointer;
-            width: var(--base-size-xs);
-            user-select: none;
-        }
-
         .cell-content {
             width: 100%;
             white-space: nowrap;
@@ -196,8 +190,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                         <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
                                 <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
-                                    <span class="tree-cell" style$="[[_getRowPadding(row,column.index)]]" on-click="[[_onTreeNodeClick]]">
-                                        [[_getTreeIcon(row)]]
+                                    <span style$="[[_getRowPadding(row, column.index)]]">
+                                        <pl-icon-button variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]"
+                                            on-click="[[_onTreeNodeClick]]"></pl-icon-button>
                                     </span>
                                     <span class="cell-content">[[column.cellTemplate]]</span>
                                 </div>
@@ -392,7 +387,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             return '';
         }
 
-        return row._opened ? '-' : '+';
+        return row._opened ? 'triangle-down' : 'triangle-right';
     }
 
     _selectedObserver(val) {
