@@ -254,8 +254,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     _dataObserver(data, old, mut) {
-        if (mut.action == 'splice' && mut.path == 'data') {
-            if(mut?.deleted.includes(this.selected)) {
+        if (mut.action === 'splice' && mut.path === 'data') {
+            if(mut?.deleted?.includes(this.selected)) {
                 this.selected = null;
             }
         }
