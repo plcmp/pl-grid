@@ -230,10 +230,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
             throttler();
         });
-
-        requestAnimationFrame(() => {
-            this._init();
-        })
+        // let nested column components upgrade, then call _init method
+        setTimeout( ()=>this._init(),0);
 
         resizeObserver.observe(this.$.headerContainer);
 

@@ -37,7 +37,8 @@ class PlGridColumn extends PlElement {
             type: Boolean
         },
         sort: {
-            type: String
+            type: String,
+            observer: 'sortChanged'
         },
         fixed: {
             type: Boolean
@@ -195,6 +196,8 @@ class PlGridColumn extends PlElement {
         else {
             this.sort = '';
         }
+    }
+    sortChanged(v) {
         this.dispatchEvent(new CustomEvent('column-attribute-change', {
             detail: {
                 attribute: 'sort',
