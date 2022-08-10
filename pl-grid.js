@@ -15,7 +15,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         data: { type: Array, value: () => [], observer: '_dataObserver' },
         selected: { type: Object, value: () => null, observer: '_selectedObserver' },
         tree: { type: Boolean, observer: '_treeModeChange' },
-        partialData: { type: Boolean, observer: '_treeModeChange' },
         _vdata: { type: Array, value: () => [] },
         _columns: { type: Array, value: () => [] },
         keyField: { type: String },
@@ -205,15 +204,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         <div class="bottom-toolbar">
             <slot name="bottom-toolbar"></slot>
         </div>
-        <pl-data-tree bypass="[[!tree]]" key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]"
-            partial-data="[[partialData]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
+        <pl-data-tree bypass="[[!tree]]" key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
     `;
 
     connectedCallback() {
         super.connectedCallback();
         setTimeout(() => {
             if (this.data?.control) {
-                this.data.control.partialData = this.partialData;
                 if (this.data.control.treeMode && this.pkeyField) {
                     this.data.control.treeMode.hidField = this.pkeyField;
                     this.data.control.treeMode.keyField = this.keyField;
@@ -394,8 +391,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
         const parents = [];
         if (this.tree && !val._opened) {
-            while (val.parent != null) {
-                val = val.parent;
+            while (val._pitem != null) {
+                val = val._pitem;
                 parents.push(val);
             }
 
@@ -403,13 +400,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 if (!el._opened) {
                     const idx = this._vdata.indexOf(el);
                     this.set(`_vdata.${idx}._opened`, true);
-                    this.showChildren(el);
                 }
             })
         }
     }
     _treeModeChange() {
-        if (this.data.control && this.tree && this.partialData) {
+        if (this.data.control && this.tree) {
             this.data.control.treeMode = {
                 hidValue: undefined,
                 keyField: this.keyField,
@@ -419,10 +415,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             delete this.data.control.treeMode;
         }
     }
-
-
-
-
 }
 
 customElements.define('pl-grid', PlGrid);
