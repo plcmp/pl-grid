@@ -209,14 +209,18 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     connectedCallback() {
         super.connectedCallback();
-        setTimeout(() => {
-            if (this.data?.control) {
-                if (this.data.control.treeMode && this.pkeyField) {
-                    this.data.control.treeMode.hidField = this.pkeyField;
-                    this.data.control.treeMode.keyField = this.keyField;
-                }
+        if (this.data?.control) {
+            if (this.data.control && this.tree) {
+                this.data.control.treeMode = {
+                    hidValue: undefined,
+                    keyField: this.keyField,
+                    hidField: this.pkeyField
+                };
+
+            } else if (this.data.control) {
+                delete this.data.control.treeMode;
             }
-        }, 0);
+        }
 
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
 
