@@ -253,12 +253,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     onColumnAttributeChange(event) {
         const { index, attribute, value } = event.detail;
-        if (attribute === 'width') {
-            this._changeColumnWidth(this._columns[index], value);
-        }
-
-        if (attribute === 'sort') {
-            this._changeColumnSort(this._columns[index], value)
+        if(this._columns[index]) {
+            if (attribute === 'width') {
+                this._changeColumnWidth(this._columns[index], value);
+            }
+    
+            if (attribute === 'sort') {
+                this._changeColumnSort(this._columns[index], value)
+            }
         }
     }
 
