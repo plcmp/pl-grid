@@ -147,6 +147,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             overflow: hidden;
             text-overflow: ellipsis;
             background-color: inherit;
+            line-height: 24px;
         }
 
         .top-toolbar ::slotted(*) {
@@ -168,7 +169,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: none;
         }
     `;
-
+    static treeFirstCellTemplate = html`<span style$="[[_getRowPadding(row, column.index)]]">
+                                        <pl-icon-button variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]"
+                                                        on-click="[[_onTreeNodeClick]]"></pl-icon-button>
+                                    </span>`;
     static template = html`
         <div class="top-toolbar">
             <slot name="top-toolbar"></slot>
@@ -189,10 +193,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                         <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
                                 <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
-                                    <span style$="[[_getRowPadding(row, column.index)]]">
-                                        <pl-icon-button variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]"
-                                            on-click="[[_onTreeNodeClick]]"></pl-icon-button>
-                                    </span>
+                                    [[getTemplateForCell(tree,column.index)]]
                                     <span class="cell-content">[[column.cellTemplate]]</span>
                                 </div>
                             </template>
@@ -420,6 +421,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         } else if (this.data.control) {
             delete this.data.control.treeMode;
         }
+    }
+    getTemplateForCell(tree,index) {
+        return tree && index===0 ? PlGrid.treeFirstCellTemplate : undefined ;
     }
 }
 
