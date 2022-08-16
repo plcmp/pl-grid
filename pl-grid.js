@@ -397,7 +397,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             return;
         }
         const parents = [];
-        if (this.tree && !val._opened) {
+        if (this.tree) {
             while (val._pitem != null) {
                 val = val._pitem;
                 parents.push(val);
@@ -405,8 +405,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
             parents.reverse().forEach((el) => {
                 if (!el._opened) {
-                    const idx = this._vdata.indexOf(el);
-                    this.set(`_vdata.${idx}._opened`, true);
+                    const idx = this.data.indexOf(el);
+                    this.set(`data.${idx}._opened`, true);
                 }
             })
         }
