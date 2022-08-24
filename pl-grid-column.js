@@ -221,7 +221,7 @@ class PlGridColumn extends PlElement {
 
     _getValue(row, field, kind, format) {
         if (row) {
-            if (kind == 'date') {
+            if (kind === 'date' && row[field]) {
                 return dayjs(row[field]).format(format || 'DD.MM.YYYY');
             }
             return row[field];
