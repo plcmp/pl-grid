@@ -118,10 +118,10 @@ class PlGridColumn extends PlElement {
             <span class="header-text">
                 [[header]]
             </span>
-            <span hidden$="[[_sortableHidden(sortable)]]" class="column-sort" on-click="[[_onSortClick]]">
+            <span hidden$="[[!sortable]]" class="column-sort" on-click="[[_onSortClick]]">
                 <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
             </span>
-            <span hidden$="[[_resizableHiden(resizable)]]" class="column-resizer" on-mousedown="[[onResize]]">
+            <span hidden$="[[!resizable]]" class="column-resizer" on-mousedown="[[onResize]]">
             </span>
         </div>
     `;
@@ -139,14 +139,6 @@ class PlGridColumn extends PlElement {
             this._cellTemplate._hctx = [this];
         }
 
-    }
-
-    _sortableHidden(sortable) {
-        return !sortable;
-    }
-
-    _resizableHiden(resizable) {
-        return !resizable;
     }
 
     onResize(event) {
@@ -187,17 +179,17 @@ class PlGridColumn extends PlElement {
         return icon;
     }
 
-    _onSortClick(event) {
+    _onSortClick() {
         if (!this.sort) {
             this.sort = 'asc';
-        } else if (this.sort == 'asc') {
+        } else if (this.sort === 'asc') {
             this.sort = 'desc';
         }
         else {
             this.sort = '';
         }
     }
-    sortChanged(v) {
+    sortChanged() {
         this.dispatchEvent(new CustomEvent('column-attribute-change', {
             detail: {
                 attribute: 'sort',
