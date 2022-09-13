@@ -53,7 +53,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         #header{
-            display: flex;
+            display: var(--pl-grid-header-display, flex);
             border-bottom: 1px solid var(--grey-light);
             position: sticky;
             top: 0;
