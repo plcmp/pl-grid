@@ -271,6 +271,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             if (attribute === 'sort') {
                 this._changeColumnSort(this._columns[index], value)
             }
+            if (attribute === 'hidden') {
+                this.set(`_columns.${index}.hidden`, value);
+            }
         }
     }
 
@@ -312,7 +315,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     _isRowActive(row, selected) {
         return row === selected;
     }
-
 
     _changeColumnSort(column, sort) {
         let sorts = [...this.data.sorts] || [];

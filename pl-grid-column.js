@@ -25,7 +25,7 @@ class PlGridColumn extends PlElement {
         },
         hidden: {
             type: Boolean,
-            reflectToAttribute: true
+            observer: '_columnHiddenObserver'
         },
         kind: {
             type: String
@@ -80,10 +80,6 @@ class PlGridColumn extends PlElement {
             min-width: 1px;
             max-width: 100%;
             flex-shrink: 0;
-        }
-
-        :host([hidden]) {
-            display: none;
         }
 
         :host ::slotted(*) {
@@ -215,7 +211,17 @@ class PlGridColumn extends PlElement {
             bubbles: true
         }));
     }
+    _columnHiddenObserver(val) {
+        this.dispatchEvent(new CustomEvent('column-attribute-change', {
+            detail: {
+                attribute: 'hidden',
+                index: this._index,
+                value: val
+            },
+            bubbles: true
+        }));
 
+    }
     _getTitle(row, field, kind, format, titleField) {
         if (row) {
             if(titleField) {
