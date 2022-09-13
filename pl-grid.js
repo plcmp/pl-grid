@@ -32,8 +32,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             flex-direction: column;
             position: relative;
             box-sizing: border-box;
-            --pl-grid-cell-min-height: var(--base-size-lg);
-            --pl-grid-header-min-height: var(--base-size-lg);
             --pl-grid-active-color: var(--primary-lightest);
             --pl-grid-active-text-color: var(--text-color);
         }
@@ -42,7 +40,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             width: 100%;
             height: 100%;
             overflow: auto;
-            contain: strict;
             position: relative;
         }
 
@@ -62,6 +59,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             top: 0;
             flex: 1;
             will-change: width;
+        }
+
+
+        .headerEl ::slotted(*) {
+            border-left: var(--pl-grid-cell-border, none);
+        }
+
+        .headerEl ::slotted(*:first-child) {
+            border-left: none;
         }
 
         .headerEl[fixed], 
@@ -93,23 +99,25 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             border-bottom: 1px solid var(--grey-light);
             background-color: var(--background-color);
             width: 100%;
-            flex-shrink: 0;
             box-sizing: border-box;
+        }
+
+        .cell:first-child {
+            border-left: none;
         }
 
         .cell{
             display: flex;
-            padding: var(--space-xs) var(--space-sm); 
+            padding: var(--space-sm);
             align-items: center;
-            height: var(--pl-grid-cell-min-height);
+            height: var(--pl-grid-cell-min-height, 32px);
             color: var(--text-color);
             overflow: hidden;
             background-color: inherit;
             will-change: width;
             position: sticky;
             box-sizing: border-box;
-            flex-shrink: 0;
-            white-space: nowrap;
+            border-left: var(--pl-grid-cell-border, none);
         }
 
         .cell[fixed] {
@@ -138,7 +146,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             white-space: normal;
             background-color: var(--pl-grid-active-color);
             color: var(--pl-grid-active-text-color);
-            --pl-icon-fill-color: var(--pl-grid-active-text-color);
         }
 
         .cell-content {
@@ -169,9 +176,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: none;
         }
     `;
-    static treeFirstCellTemplate = html`<span style$="[[_getRowPadding(row, column.index)]]">
-                                        <pl-icon-button variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]"
-                                                        on-click="[[_onTreeNodeClick]]"></pl-icon-button>
+    static treeFirstCellTemplate = html`<span style$="[[_getRowPadding(row, column.index)]]" on-click="[[_onTreeNodeClick]]">
+                                        <pl-icon-button variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]"></pl-icon-button>
                                     </span>`;
     static template = html`
         <div class="top-toolbar">
@@ -181,7 +187,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="headerContainer">
                 <div id="header">
                     <template d:repeat="[[_columns]]" d:as="column">
-                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width)]]">
+                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]">
                             <slot name="[[_getSlotName(column.index)]]"></slot>
                         </div>
                     </template>
@@ -192,7 +198,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     <template id="tplRow">
                         <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
-                                <div style$="[[_getCellStyle(column.index, column.width)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                <div style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
                                     [[getTemplateForCell(tree,column.index)]]
                                     <span class="cell-content">[[column.cellTemplate]]</span>
                                 </div>
@@ -262,7 +268,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             if (attribute === 'width') {
                 this._changeColumnWidth(this._columns[index], value);
             }
-    
             if (attribute === 'sort') {
                 this._changeColumnSort(this._columns[index], value)
             }
@@ -270,6 +275,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     reactToResize() {
+        this._columns.forEach((el) => {
+            if (!el.width) {
+                this.set(`_columns.${el.index}._calculatedWidth`, el.node.offsetWidth);
+            }
+        })
         this.$.scroller.render();
         this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
     }
@@ -284,11 +294,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 hidden: column.hidden || false,
                 field: column.field,
                 width: column.width ? parseInt(column.width) : null,
+                _calculatedWidth: null,
                 resizable: column.resizable,
                 fixed: column.fixed || false,
                 action: column.action || false,
                 index: index,
-                cellTemplate: column._cellTemplate
+                cellTemplate: column._cellTemplate,
+                node: column
             };
 
             column._index = index;
@@ -327,17 +339,21 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return `column-${index}`;
     }
 
-    _getCellStyle(index) {
+    _getCellStyle(index, width, internal, isHeader) {
         const column = this._columns[index];
         const style = [];
-
+        
         if (!column) {
             return '';
         }
-
+        
         if (column.width) {
             style.push(`width: ${column.width}px`);
-        } else {
+        } 
+        else if(column._calculatedWidth) {
+            style.push(`flex: 1 1 ${column._calculatedWidth}px`);
+        }
+        else {
             style.push(`flex: 1;`);
         }
 

@@ -5,7 +5,7 @@ import { throttle } from "@plcmp/utils";
 import dayjs from 'dayjs/esm/index.js';
 
 class PlGridColumn extends PlElement {
-    static  properties = {
+    static properties = {
         header: {
             type: String
         },
@@ -18,6 +18,9 @@ class PlGridColumn extends PlElement {
             value: 50
         },
         field: {
+            type: String
+        },
+        titleField: {
             type: String
         },
         hidden: {
@@ -35,6 +38,9 @@ class PlGridColumn extends PlElement {
         },
         sortable: {
             type: Boolean
+        },
+        _calculatedWidth: {
+            type: String
         },
         sort: {
             type: String,
@@ -57,7 +63,7 @@ class PlGridColumn extends PlElement {
         }
     }
 
-    static  css = css`
+    static css = css`
         :host{
             box-sizing: border-box;
             flex-direction: row;
@@ -70,7 +76,10 @@ class PlGridColumn extends PlElement {
             font: var(--header-font);
             color: var(--header-color);
             will-change: width;
-            padding: 0 var(--space-sm);
+            height: 100%;
+            min-width: 1px;
+            max-width: 100%;
+            flex-shrink: 0;
         }
 
         :host([hidden]) {
@@ -85,13 +94,13 @@ class PlGridColumn extends PlElement {
         .header {
             display: flex;
             width: 100%;
-            align-items: center;
-            flex-shrink: 0;
-            gap: var(--space-md);
+            height: 100%;
+            padding: var(--space-sm);
+            box-sizing: border-box;
         }
 
         .header-text {
-            white-space: nowrap;
+            white-space: var(--pl-grid-header-white-space, nowrap);
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
@@ -99,11 +108,7 @@ class PlGridColumn extends PlElement {
 
         .column-resizer{
             cursor: ew-resize;
-            height: 50%;
-            border-right: 1px solid var(--grey-dark);
-            right: 0;
-            position: absolute;
-            width: 2px;
+            color: var(--grey-darkest);
         }
 
         .column-sort {
@@ -122,23 +127,23 @@ class PlGridColumn extends PlElement {
                 <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
             </span>
             <span hidden$="[[!resizable]]" class="column-resizer" on-mousedown="[[onResize]]">
+                <pl-icon iconset="pl-grid-icons" size="16" icon="resizer"></pl-icon>
             </span>
         </div>
     `;
-    
+
     connectedCallback() {
         super.connectedCallback();
-        let tplEl = [...this.childNodes].find( n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'));
+        let tplEl = [...this.childNodes].find(n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'));
         if (tplEl) {
             // host context can be assigned to template
             this._cellTemplate = tplEl?._tpl;
             this._cellTemplate._hctx = [...tplEl._hctx, this];
         }
         else {
-            this._cellTemplate = html`[[_getValue(row, field, kind, format)]]`;
+            this._cellTemplate = html`<span title="[[_getTitle(row, field, kind, format, titleField)]]">[[_getValue(row, field, kind, format)]]</span>`;
             this._cellTemplate._hctx = [this];
         }
-
     }
 
     onResize(event) {
@@ -209,6 +214,17 @@ class PlGridColumn extends PlElement {
             },
             bubbles: true
         }));
+    }
+
+    _getTitle(row, field, kind, format, titleField) {
+        if (row) {
+            if(titleField) {
+                return row[titleField];
+            }
+            else {
+                return this._getValue(row, field, kind, format);
+            }
+        }
     }
 
     _getValue(row, field, kind, format) {
