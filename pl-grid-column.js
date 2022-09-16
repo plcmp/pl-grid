@@ -34,7 +34,8 @@ class PlGridColumn extends PlElement {
             type: String
         },
         resizable: {
-            type: Boolean
+            type: Boolean,
+            reflectToAttribute: true
         },
         sortable: {
             type: Boolean
@@ -103,8 +104,11 @@ class PlGridColumn extends PlElement {
             width: 100%;
         }
 
-        .column-resizer {
+        :host([resizable]) .column-resizer {
             cursor: ew-resize;
+        }
+
+        .column-resizer {
             height: 100%;
             border-right: 1px solid var(--grey-light);
             right: 0;
@@ -113,7 +117,7 @@ class PlGridColumn extends PlElement {
             width: 4px;
         }
 
-        .column-resizer:hover {
+        :host([resizable]) .column-resizer:hover  {
             border-right: 1px solid var(--primary-base);
         }
 
@@ -132,7 +136,7 @@ class PlGridColumn extends PlElement {
             <span hidden$="[[!sortable]]" class="column-sort" on-click="[[_onSortClick]]">
                 <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
             </span>
-            <span hidden$="[[!resizable]]" class="column-resizer" on-mousedown="[[onResize]]"></span>
+            <span class="column-resizer" on-mousedown="[[onResize]]"></span>
         </div>
     `;
 
@@ -151,6 +155,7 @@ class PlGridColumn extends PlElement {
     }
 
     onResize(event) {
+        if(!this.resizable) return;
         if (!this.width) this.width = this.offsetWidth;
         this._resizeBase = { baseSize: parseInt(this.width), baseMoveOffset: event.screenX };
         event.preventDefault();
