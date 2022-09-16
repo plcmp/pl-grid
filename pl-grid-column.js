@@ -88,11 +88,12 @@ class PlGridColumn extends PlElement {
         }
 
         .header {
-            display: flex;
             width: 100%;
             height: 100%;
             padding: var(--space-sm);
             box-sizing: border-box;
+            display: flex;
+            align-items: center;
         }
 
         .header-text {
@@ -102,9 +103,18 @@ class PlGridColumn extends PlElement {
             width: 100%;
         }
 
-        .column-resizer{
+        .column-resizer {
             cursor: ew-resize;
-            color: var(--grey-darkest);
+            height: 100%;
+            border-right: 1px solid var(--grey-light);
+            right: 0;
+            top:0;
+            position: absolute;
+            width: 4px;
+        }
+
+        .column-resizer:hover {
+            border-right: 1px solid var(--primary-base);
         }
 
         .column-sort {
@@ -122,9 +132,7 @@ class PlGridColumn extends PlElement {
             <span hidden$="[[!sortable]]" class="column-sort" on-click="[[_onSortClick]]">
                 <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
             </span>
-            <span hidden$="[[!resizable]]" class="column-resizer" on-mousedown="[[onResize]]">
-                <pl-icon iconset="pl-grid-icons" size="16" icon="resizer"></pl-icon>
-            </span>
+            <span hidden$="[[!resizable]]" class="column-resizer" on-mousedown="[[onResize]]"></span>
         </div>
     `;
 

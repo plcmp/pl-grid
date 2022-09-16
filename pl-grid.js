@@ -61,15 +61,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             will-change: width;
         }
 
-
-        .headerEl ::slotted(*) {
-            border-left: var(--pl-grid-cell-border, none);
-        }
-
-        .headerEl ::slotted(*:first-child) {
-            border-left: none;
-        }
-
         .headerEl[fixed], 
         .headerEl[action]  {
             position: sticky;
@@ -102,10 +93,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             box-sizing: border-box;
         }
 
-        .cell:first-child {
-            border-left: none;
-        }
-
         .cell{
             display: flex;
             padding: var(--space-sm);
@@ -117,7 +104,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             will-change: width;
             position: sticky;
             box-sizing: border-box;
-            border-left: var(--pl-grid-cell-border, none);
+            border-right: var(--pl-grid-cell-border, none);
         }
 
         .cell[fixed] {
