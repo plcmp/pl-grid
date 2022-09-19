@@ -106,19 +106,15 @@ class PlGridColumn extends PlElement {
 
         :host([resizable]) .column-resizer {
             cursor: ew-resize;
-        }
-
-        .column-resizer {
-            height: 100%;
-            border-right: 1px solid var(--grey-light);
+            height: 50%;
+            border-right: 1px solid var(--grey-dark);
             right: 0;
-            top:0;
             position: absolute;
             width: 4px;
         }
 
         :host([resizable]) .column-resizer:hover  {
-            border-right: 1px solid var(--primary-base);
+            border-right: 2px solid var(--primary-base);
         }
 
         .column-sort {
