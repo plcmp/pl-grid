@@ -34,6 +34,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             box-sizing: border-box;
             --pl-grid-active-color: var(--primary-lightest);
             --pl-grid-active-text-color: var(--text-color);
+            background-color: var(--background-color);
         }
 
         #container {
@@ -99,7 +100,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             align-items: center;
             height: var(--pl-grid-cell-min-height, 32px);
             color: var(--text-color);
-            overflow: hidden;
             background-color: inherit;
             will-change: width;
             position: sticky;
