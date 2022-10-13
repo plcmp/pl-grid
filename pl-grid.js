@@ -96,6 +96,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .cell{
             display: flex;
+            min-width: 0;
             padding: var(--space-sm);
             align-items: center;
             height: var(--pl-grid-cell-min-height, 32px);
