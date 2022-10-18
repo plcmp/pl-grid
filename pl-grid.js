@@ -271,8 +271,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 this.set(`_columns.${el.index}._calculatedWidth`, el.node.offsetWidth);
             }
         })
-        this.$.scroller.render();
-        this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
+        setTimeout(() => {
+            this.$.scroller.render();
+            this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
+        }, 0);
     }
 
     _init() {
