@@ -103,7 +103,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             color: var(--text-color);
             background-color: inherit;
             will-change: width;
-            position: sticky;
+            position: relative;
             box-sizing: border-box;
             border-right: var(--pl-grid-cell-border, none);
         }
@@ -136,13 +136,17 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             color: var(--pl-grid-active-text-color);
         }
 
+        .row[active]{
+            z-index: 1;
+         }
+
         .cell-content {
             width: 100%;
             white-space: nowrap;
-            overflow: hidden;
             text-overflow: ellipsis;
             background-color: inherit;
             line-height: 24px;
+            overflow-x: hidden;
         }
 
         .top-toolbar ::slotted(*) {
@@ -150,7 +154,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             padding: var(--space-sm);
             box-sizing: border-box;
             border-bottom: 1px solid var(--grey-light);
-
         }
 
         .bottom-toolbar ::slotted(*) {
