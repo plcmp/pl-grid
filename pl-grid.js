@@ -246,9 +246,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     _dataObserver(data, old, mut) {
-        if (mut.action === 'splice' && mut.path === 'data') {
-            if(mut?.deleted?.includes(this.selected)) {
+        if (mut.action === 'splice' && mut.path == 'data') {
+            if (mut?.deleted?.includes(this.selected)) {
                 this.selected = null;
+            }
+        }
+
+        if(mut.path != 'data' && this.selected) {
+            let m = mut.path.match(/^data\.(\d*)/);
+            if(m[1] == this.data.indexOf(this.selected)) {
+                this.forwardNotify(mut, `data.${m[1]}`, 'selected');
             }
         }
     }
@@ -403,12 +410,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return row._opened ? 'triangle-down' : 'triangle-right';
     }
 
-    _selectedObserver(val) {
+    _selectedObserver(val, old, mutation) {
         if (!val) {
             return;
         }
-        const parents = [];
+        
         if (this.tree) {
+            const parents = [];
+
             while (val._pitem != null) {
                 val = val._pitem;
                 parents.push(val);
@@ -421,6 +430,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 }
             })
         }
+
+        this.forwardNotify(mutation, `selected`, `data.${this.data.indexOf(this.selected)}`);
     }
     _treeModeChange() {
         if (this.data.control && this.tree) {
