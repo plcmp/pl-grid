@@ -23,6 +23,10 @@ class PlGridColumn extends PlElement {
         titleField: {
             type: String
         },
+        justify: {
+            type: String,
+            value: 'left'
+        },
         hidden: {
             type: Boolean,
             observer: '_columnHiddenObserver'

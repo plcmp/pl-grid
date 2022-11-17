@@ -142,11 +142,17 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .cell-content {
             width: 100%;
-            white-space: nowrap;
-            text-overflow: ellipsis;
             background-color: inherit;
             line-height: 24px;
-            overflow-x: hidden;
+            display: flex;
+            justify-content: inherit;
+            min-width: 0;
+        }
+
+        .cell-content > span {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
         }
 
         .top-toolbar ::slotted(*) {
@@ -207,19 +213,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     connectedCallback() {
         super.connectedCallback();
-        if (this.data?.control) {
-            if (this.data.control && this.tree) {
-                this.data.control.treeMode = {
-                    hidValue: undefined,
-                    keyField: this.keyField,
-                    hidField: this.pkeyField
-                };
-
-            } else if (this.data.control) {
-                delete this.data.control.treeMode;
-            }
-        }
-
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
 
         const resizeObserver = new ResizeObserver(() => {
@@ -230,7 +223,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             throttler();
         });
         // let nested column components upgrade, then call _init method
-        setTimeout( ()=>this._init(),0);
+        setTimeout(() => {
+            if (this.data?.control) {
+                this._treeModeChange();
+            }
+            this._init();
+        }, 0);
 
         resizeObserver.observe(this.$.headerContainer);
 
@@ -296,6 +294,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 header: column.header,
                 hidden: column.hidden || false,
                 field: column.field,
+                justify: column.justify,
                 width: column.width ? parseInt(column.width) : null,
                 _calculatedWidth: null,
                 resizable: column.resizable,
@@ -344,20 +343,19 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     _getCellStyle(index, width, internal, isHeader) {
         const column = this._columns[index];
         const style = [];
-        
+
         if (!column) {
             return '';
         }
-        
+
         if (column.width) {
             style.push(`width: ${column.width}px`);
-        } 
-        else if(column._calculatedWidth) {
+        }
+        else if (column._calculatedWidth) {
             style.push(`flex: 1 1 ${column._calculatedWidth}px`);
         }
-        else {
-            style.push(`flex: 1;`);
-        }
+
+        style.push(`justify-content: ${column.justify}`)
 
         if (column.fixed) {
             const left = column.index === 0 ? '0' : this._ti._pti ? this._ti._pti.ctx._columns[column.index - 1].width + 'px' : this._ti.ctx._columns[column.index - 1].width + 'px';
