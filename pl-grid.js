@@ -429,7 +429,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             })
         }
 
-        this.forwardNotify(mutation, `selected`, `data.${this.data.indexOf(this.selected)}`);
+        if(mutation.path != 'selected') {
+            this.forwardNotify(mutation, `selected`, `data.${this.data.indexOf(this.selected)}`);
+        }
     }
     _treeModeChange() {
         if (this.data.control && this.tree) {
