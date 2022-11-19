@@ -365,7 +365,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return style.join(';');
     }
 
-    _onRowClick(event) {
+    async beforeSelect(model) {
+        return true;
+    }
+
+    async _onRowClick(event) {
+        const res = await this.beforeSelect(event.model.row);
+        if(!res) {
+            return false;
+        }
         if (event.model.row) {
             this.selected = event.model.row;
         }
