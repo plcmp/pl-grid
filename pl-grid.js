@@ -42,6 +42,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             height: 100%;
             overflow: auto;
             position: relative;
+            contain: strict;
         }
 
         #headerContainer{
@@ -215,22 +216,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         super.connectedCallback();
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
 
-        const resizeObserver = new ResizeObserver(() => {
+        const resizeObserver = new ResizeObserver((resizes) => {
             let throttler = throttle(() => {
+                this.$.rowsContainer.style.width = resizes[0].contentRect.width + 'px';
                 this.reactToResize();
-            }, 100)
+            }, 300)
 
             throttler();
         });
-        // let nested column components upgrade, then call _init method
-        setTimeout(() => {
-            if (this.data?.control) {
-                this._treeModeChange();
-            }
-            this._init();
-        }, 0);
 
-        resizeObserver.observe(this.$.headerContainer);
 
         const observer = new MutationObserver((mutationsList) => {
             for (let mutation of mutationsList) {
@@ -240,7 +234,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
         });
 
+        resizeObserver.observe(this.$.header);
         observer.observe(this, { attributes: false, childList: true, subtree: true });
+
+        // let nested column components upgrade, then call _init method
+        setTimeout(() => {
+            if (this.data?.control) {
+                this._treeModeChange();
+            }
+            this._init();
+        }, 0);
     }
 
     _dataObserver(data, old, mut) {
@@ -281,7 +284,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         })
         setTimeout(() => {
             this.$.scroller.render();
-            this.$.rowsContainer.style.width = this.$.headerContainer.scrollWidth + 'px';
         }, 0);
     }
 
@@ -358,7 +360,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         style.push(`justify-content: ${column.justify}`)
 
         if (column.fixed) {
-            const left = column.index === 0 ? '0' : this._ti._pti ? this._ti._pti.ctx._columns[column.index - 1].width + 'px' : this._ti.ctx._columns[column.index - 1].width + 'px';
+            const left = column.index === 0 ? '0' : this._columns[column.index - 1].width + 'px';
             style.push(`left: ${left}`);
         }
 
