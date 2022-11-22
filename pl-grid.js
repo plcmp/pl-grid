@@ -95,18 +95,25 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             box-sizing: border-box;
         }
 
-        .cell{
+        .cell {
             display: flex;
             min-width: 0;
             padding: var(--space-sm);
             align-items: center;
-            height: var(--pl-grid-cell-min-height, 32px);
             color: var(--text-color);
             background-color: inherit;
             will-change: width;
             position: relative;
             box-sizing: border-box;
             border-right: var(--pl-grid-cell-border, none);
+            height: var(--pl-grid-cell-min-height, 32px);
+        }
+
+        .cell > span {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            line-height: 24px;
         }
 
         .cell[fixed] {
@@ -141,20 +148,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             z-index: 1;
          }
 
-        .cell-content {
-            width: 100%;
-            background-color: inherit;
-            line-height: 24px;
-            display: flex;
-            justify-content: inherit;
-            min-width: 0;
-        }
-
-        .cell-content > span {
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            overflow: hidden;
-        }
 
         .top-toolbar ::slotted(*) {
             width: 100%;
@@ -198,7 +191,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                             <template d:repeat="[[_columns]]" d:as="column">
                                 <div style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
                                     [[getTemplateForCell(tree,column.index)]]
-                                    <span class="cell-content">[[column.cellTemplate]]</span>
+                                    <span>[[column.cellTemplate]]</span>
                                 </div>
                             </template>
                         </div>
@@ -357,8 +350,28 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             style.push(`flex: 1 1 ${column._calculatedWidth}px`);
         }
 
-        style.push(`justify-content: ${column.justify}`)
+        style.push(`justify-content: ${column.justify}`);
+        switch(column.justify) {
+            case 'end':
+            case 'flex-end':
+            case 'right': {
+                style.push('text-align: end')
+                break;
+            }
 
+            case 'start':
+            case 'flex-start':
+            case 'left': {
+                style.push('text-align: start')
+                break;
+            }
+
+            case 'center':
+            {
+                style.push('text-align: center;')
+                break;
+            }
+        }
         if (column.fixed) {
             const left = column.index === 0 ? '0' : this._columns[column.index - 1].width + 'px';
             style.push(`left: ${left}`);
