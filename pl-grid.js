@@ -167,9 +167,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: none;
         }
     `;
-    static treeFirstCellTemplate = html`<span style$="[[_getRowPadding(row, column.index)]]" on-click="[[_onTreeNodeClick]]">
-                                        <pl-icon-button variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]"></pl-icon-button>
-                                    </span>`;
+    static treeFirstCellTemplate = html`<pl-icon-button style$="[[_getRowPadding(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
     static template = html`
         <div class="top-toolbar">
             <slot name="top-toolbar"></slot>
