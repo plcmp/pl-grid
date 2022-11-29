@@ -167,7 +167,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: none;
         }
     `;
-    static treeFirstCellTemplate = html`<pl-icon-button style$="[[_getRowPadding(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
+    static treeFirstCellTemplate = html`<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
     static template = html`
         <div class="top-toolbar">
             <slot name="top-toolbar"></slot>
@@ -414,9 +414,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         this.set(`data.${idx}._opened`, !event.model.row._opened);
     }
 
-    _getRowPadding(row, index) {
+    _getRowMargin(row, index) {
         if (index === 0 && (this.tree)) {
-            return `padding-left: ${row._level * 16 + 'px'}`;
+            return `margin-left: ${row._level * 16 + 'px'}`;
         }
         return 'display:none;';
     }
