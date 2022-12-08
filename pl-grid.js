@@ -40,9 +40,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         #container {
             width: 100%;
             height: 100%;
-            overflow: auto;
+            display: flex;
+            flex-direction: column;
             position: relative;
             contain: strict;
+            overflow:auto;
         }
 
         #headerContainer{
@@ -50,30 +52,52 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             width: 100%;
             position: sticky;
             background-color: var(--grey-lightest);
-            z-index: 1;
+            z-index: 2;
             top: 0;
         }
 
+        #footerContainer {
+            display: flex;
+            width: 100%;
+            background-color: var(--grey-lightest);
+            z-index: 2;
+            bottom: 0;
+            will-change: bottom;
+            height: 32px;
+        }
+
+
         #header{
             display: var(--pl-grid-header-display, flex);
-            border-bottom: 1px solid var(--grey-light);
+            border-bottom: 1px solid var(--grey-base);
             position: sticky;
             top: 0;
             flex: 1;
             will-change: width;
         }
 
+        #footer{
+            display: var(--pl-grid-header-display, flex);
+            border-top: 1px solid var(--grey-base);
+            position: sticky;
+            bottom: 0;
+            flex: 1;
+            will-change: width;
+        }
+
         .headerEl[fixed], 
-        .headerEl[action]  {
+        .headerEl[action],
+        .footerEl[fixed],
+        .footerEl[action] {
             position: sticky;
             z-index: 3;
         }
 
-        .headerEl[action] {
+        .headerEl[action], .footerEl[action] {
             right: 0;
         }
         
-        .headerEl[hidden] {
+        .headerEl[hidden], .footerEl[hidden] {
             display: none;
         }
 
@@ -146,8 +170,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .row[active]{
             z-index: 1;
-         }
-
+        }
 
         .top-toolbar ::slotted(*) {
             width: 100%;
@@ -167,7 +190,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: none;
         }
     `;
-    static treeFirstCellTemplate = html`<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
+    static treeFirstCellTemplate = html`<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default"
+    icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
     static template = html`
         <div class="top-toolbar">
             <slot name="top-toolbar"></slot>
@@ -176,7 +200,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="headerContainer">
                 <div id="header">
                     <template d:repeat="[[_columns]]" d:as="column">
-                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]">
+                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]"
+                            style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth, 'header')]]">
                             <slot name="[[_getSlotName(column.index)]]"></slot>
                         </div>
                     </template>
@@ -185,9 +210,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="rowsContainer">
                 <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
                     <template id="tplRow">
-                        <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
+                        <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]"
+                            on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
-                                <div style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                <div style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]"
+                                    class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]"
+                                    action$="[[column.action]]">
                                     [[getTemplateForCell(tree,column.index)]]
                                     <span>[[column.cellTemplate]]</span>
                                 </div>
@@ -196,11 +224,22 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     </template>
                 </pl-virtual-scroll>
             </div>
+            <div id="footerContainer">
+                <div id="footer">
+                    <template d:repeat="[[_columns]]" d:as="column">
+                        <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]"
+                            style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth, 'footer')]]">
+                            [[column.footerTemplate]]
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
         <div class="bottom-toolbar">
             <slot name="bottom-toolbar"></slot>
         </div>
-        <pl-data-tree bypass="[[!tree]]" key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
+        <pl-data-tree bypass="[[!tree]]" key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]"
+            in="{{data}}" out="{{_vdata}}"></pl-data-tree>
     `;
 
     connectedCallback() {
@@ -235,6 +274,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
             this._init();
         }, 0);
+
+
+        this.$.container.addEventListener('scroll', (e) => {
+            let throttler = throttle(() => {
+                this.$.footerContainer.style.bottom =  -this.$.container.scrollTop + 'px';
+            }, 300)
+
+            throttler();
+        });
     }
 
     _dataObserver(data, old, mut) {
@@ -244,9 +292,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
         }
 
-        if(mut.path != 'data' && this.selected) {
+        if (mut.path != 'data' && this.selected) {
             let m = mut.path.match(/^data\.(\d*)/);
-            if(m[1] == this.data.indexOf(this.selected)) {
+            if (m[1] == this.data.indexOf(this.selected)) {
                 this.forwardNotify(mut, `data.${m[1]}`, 'selected');
             }
         }
@@ -254,7 +302,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     onColumnAttributeChange(event) {
         const { index, attribute, value } = event.detail;
-        if(this._columns[index]) {
+        if (this._columns[index]) {
             if (attribute === 'width') {
                 this._changeColumnWidth(this._columns[index], value);
             }
@@ -295,6 +343,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 action: column.action || false,
                 index: index,
                 cellTemplate: column._cellTemplate,
+                footerTemplate: column._footerTemplate,
                 node: column
             };
 
@@ -333,7 +382,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return `column-${index}`;
     }
 
-    _getCellStyle(index, width, internal, isHeader) {
+    _getCellStyle(index, width, internal, type) {
         const column = this._columns[index];
         const style = [];
 
@@ -348,26 +397,28 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             style.push(`flex: 1 1 ${column._calculatedWidth}px`);
         }
 
-        style.push(`justify-content: ${column.justify}`);
-        switch(column.justify) {
-            case 'end':
-            case 'flex-end':
-            case 'right': {
-                style.push('text-align: end')
-                break;
-            }
-
-            case 'start':
-            case 'flex-start':
-            case 'left': {
-                style.push('text-align: start')
-                break;
-            }
-
-            case 'center':
-            {
-                style.push('text-align: center;')
-                break;
+        if (type === 'header') {
+            style.push('text-align: start;')
+        } else {
+            style.push(`justify-content: ${column.justify}`);
+            switch (column.justify) {
+                case 'end':
+                case 'flex-end':
+                case 'right': {
+                    style.push('text-align: end')
+                    break;
+                }
+                case 'start':
+                case 'flex-start':
+                case 'left': {
+                    style.push('text-align: start')
+                    break;
+                }
+                case 'center':
+                    {
+                        style.push('text-align: center;')
+                        break;
+                    }
             }
         }
         if (column.fixed) {
@@ -384,7 +435,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     async _onRowClick(event) {
         const res = await this.beforeSelect(event.model.row);
-        if(!res) {
+        if (!res) {
             return false;
         }
         if (event.model.row) {
@@ -433,7 +484,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         if (!val) {
             return;
         }
-        
+
         if (this.tree) {
             const parents = [];
 
@@ -450,7 +501,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             })
         }
 
-        if(mutation.path != 'selected') {
+        if (mutation.path != 'selected') {
             this.forwardNotify(mutation, `selected`, `data.${this.data.indexOf(this.selected)}`);
         }
     }
@@ -465,8 +516,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             delete this.data.control.treeMode;
         }
     }
-    getTemplateForCell(tree,index) {
-        return tree && index===0 ? PlGrid.treeFirstCellTemplate : undefined ;
+    getTemplateForCell(tree, index) {
+        return tree && index === 0 ? PlGrid.treeFirstCellTemplate : undefined;
     }
 }
 

@@ -65,6 +65,9 @@ class PlGridColumn extends PlElement {
         },
         _cellTemplate: {
             type: Object
+        },
+        _footerTemplate: {
+            type: Object
         }
     }
 
@@ -142,11 +145,16 @@ class PlGridColumn extends PlElement {
 
     connectedCallback() {
         super.connectedCallback();
-        let tplEl = [...this.childNodes].find(n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'));
-        if (tplEl) {
-            // host context can be assigned to template
-            this._cellTemplate = tplEl?._tpl;
-            this._cellTemplate._hctx = [...tplEl._hctx, this];
+        let tplEls = [...this.childNodes].filter(n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'));
+        let footerTpl = tplEls.find(tplEl => tplEl._tpl.tpl.getAttribute('is') == 'footer');
+        if(footerTpl) {
+            this._footerTemplate = footerTpl?._tpl;
+            this._footerTemplate._hctx = [...footerTpl._hctx, this];
+        }
+        let cellTpl = tplEls.find(tplEl => !tplEl._tpl.tpl.hasAttribute('is'));
+        if(cellTpl) {
+            this._cellTemplate = cellTpl?._tpl;
+            this._cellTemplate._hctx = [...cellTpl._hctx, this];
         }
         else {
             this._cellTemplate = html`<span title$="[[_getTitle(row, field, kind, format, titleField)]]">[[_getValue(row, field, kind, format)]]</span>`;
