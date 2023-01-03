@@ -114,6 +114,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             text-overflow: ellipsis;
             overflow: hidden;
             line-height: 24px;
+            width: 100%;
         }
 
         .cell[fixed] {
