@@ -64,6 +64,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             bottom: 0;
             will-change: bottom;
             height: 32px;
+            position: absolute;
         }
 
 
@@ -249,6 +250,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         const resizeObserver = new ResizeObserver((resizes) => {
             let throttler = throttle(() => {
                 this.$.rowsContainer.style.width = resizes[0].contentRect.width + 'px';
+                this.$.footerContainer.style.width = resizes[0].contentRect.width + 'px';
+
                 this.reactToResize();
             }, 300)
 
@@ -279,7 +282,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         this.$.container.addEventListener('scroll', (e) => {
             let throttler = throttle(() => {
                 this.$.footerContainer.style.bottom =  -this.$.container.scrollTop + 'px';
-            }, 300)
+            }, 100)
 
             throttler();
         });
