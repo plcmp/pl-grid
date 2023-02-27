@@ -99,10 +99,11 @@ class PlGridColumn extends PlElement {
             box-sizing: border-box;
             display: flex;
             align-items: center;
+            text-align: start;
         }
 
         .header-text {
-            white-space: var(--pl-grid-header-white-space, nowrap);
+            white-space: var(--pl-grid-header-white-space, normal);
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
@@ -111,19 +112,21 @@ class PlGridColumn extends PlElement {
         :host([resizable]) .column-resizer {
             cursor: ew-resize;
             height: 50%;
-            border-right: 1px solid var(--grey-dark);
-            right: 0;
+            border-inline-end: 1px solid var(--grey-dark);
+            inset-inline-end: 0;
             position: absolute;
             width: 4px;
+            margin-inline-end: 8px;
         }
 
         :host([resizable]) .column-resizer:hover  {
-            border-right: 2px solid var(--primary-base);
+            border-inline-end: 2px solid var(--primary-base);
         }
 
         .column-sort {
             cursor: pointer;
             color: var(--grey-dark);
+            margin-inline-end: 4px;
         }
     `;
 
