@@ -50,7 +50,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             width: 100%;
             position: sticky;
             background-color: var(--grey-lightest);
-            z-index: 1;
+            z-index: 2;
             top: 0;
         }
 
