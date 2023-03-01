@@ -107,6 +107,7 @@ class PlGridColumn extends PlElement {
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
+            margin-inline-end: 4px;
         }
 
         :host([resizable]) .column-resizer {
@@ -116,7 +117,7 @@ class PlGridColumn extends PlElement {
             inset-inline-end: 0;
             position: absolute;
             width: 4px;
-            margin-inline-end: 8px;
+            margin-inline-end: 4px;
         }
 
         :host([resizable]) .column-resizer:hover  {
