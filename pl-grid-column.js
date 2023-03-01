@@ -206,12 +206,13 @@ class PlGridColumn extends PlElement {
             this.sort = '';
         }
     }
-    sortChanged() {
+    sortChanged(val, old, mut) {
         this.dispatchEvent(new CustomEvent('column-attribute-change', {
             detail: {
                 attribute: 'sort',
                 index: this._index,
-                value: this.sort
+                value: this.sort,
+                init: mut.init
             },
             bubbles: true
         }));

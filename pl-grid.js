@@ -254,13 +254,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     onColumnAttributeChange(event) {
-        const { index, attribute, value } = event.detail;
+        const { index, attribute, value, init } = event.detail;
         if(this._columns[index]) {
             if (attribute === 'width') {
                 this._changeColumnWidth(this._columns[index], value);
             }
             if (attribute === 'sort') {
-                this._changeColumnSort(this._columns[index], value)
+                this._changeColumnSort(this._columns[index], value, init)
             }
             if (attribute === 'hidden') {
                 this.set(`_columns.${index}.hidden`, value);
@@ -309,7 +309,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         return row === selected;
     }
 
-    _changeColumnSort(column, sort) {
+    _changeColumnSort(column, sort, init) {
         let sorts = [...this.data.sorts] || [];
         const ind = sorts.findIndex(item => item.field === column.field);
         if (ind >= 0) {
@@ -322,7 +322,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         };
 
         sorts.splice(0, 0, newSort);
-        this.set('data.sorts', sorts);
+
+        // если сортировка была указана в гриде, то выставляем ее по-тихому, без уведомления о мутации
+        // иначе по клику на сортировку вызываем мутацию и перезагружаем датасет 
+        if(init) {
+            this.data.sorts =  sorts;
+        } else {
+            this.set('data.sorts', sorts);
+        }
     }
 
     _changeColumnWidth(column, width) {
