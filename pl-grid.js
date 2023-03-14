@@ -6,7 +6,7 @@ import "@plcmp/pl-icon";
 import "@plcmp/pl-iconset-default";
 import "@plcmp/pl-data-tree";
 
-import { PlResizeableMixin, throttle } from '@plcmp/utils';
+import { PlResizeableMixin, throttle, PlaceHolder } from '@plcmp/utils';
 
 import "./pl-grid-column.js";
 
@@ -93,6 +93,19 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             background-color: var(--background-color);
             width: 100%;
             box-sizing: border-box;
+            position: relative;
+        }
+
+        .row[loading]::after {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left:0;
+            display: flex;
+            content:'Загрузка...';
+            align-items: center;
+            justify-content: center;
         }
 
         .cell {
@@ -186,7 +199,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="rowsContainer">
                 <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
                     <template id="tplRow">
-                        <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
+                        <div class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
                                 <div style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
                                     [[getTemplateForCell(tree,column.index)]]
@@ -476,6 +489,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
     getTemplateForCell(tree,index) {
         return tree && index===0 ? PlGrid.treeFirstCellTemplate : undefined ;
+    }
+
+    _isPlaceholder(row) {
+        return row instanceof PlaceHolder;
     }
 }
 
