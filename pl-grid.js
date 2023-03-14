@@ -19,7 +19,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         _columns: { type: Array, value: () => [] },
         keyField: { type: String },
         pkeyField: { type: String },
-        hasChildField: { type: String, value: '_haschildren' }
+        hasChildField: { type: String, value: '_haschildren' },
+        lastVirtual: { type: Object, value: null, observer: 'lastVirtualObserver'}
     }
 
     static css = css`
@@ -67,7 +68,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: absolute;
         }
 
-
         #header{
             display: var(--pl-grid-header-display, flex);
             border-bottom: 1px solid var(--grey-base);
@@ -84,6 +84,21 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             bottom: 0;
             flex: 1;
             will-change: width;
+        }
+
+        .footerEl {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: var(--space-sm);
+            box-sizing: border-box;
+            font: var(--header-font);
+            color: var(--header-color);
+        }
+
+        .footerCell{
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .headerEl[fixed], 
@@ -209,7 +224,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 </div>
             </div>
             <div id="rowsContainer">
-                <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
+                <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller" last-item="{{lastVirtual}}">
                     <template id="tplRow">
                         <div class="row" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]"
                             on-dblclick="[[_onRowDblClick]]">
@@ -230,7 +245,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     <template d:repeat="[[_columns]]" d:as="column">
                         <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]"
                             style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth, 'footer')]]">
-                            [[column.footerTemplate]]
+                            <div class="footerCell">
+                                [[column.footerTemplate]]
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -251,7 +268,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             let throttler = throttle(() => {
                 this.$.rowsContainer.style.width = resizes[0].contentRect.width + 'px';
                 this.$.footerContainer.style.width = resizes[0].contentRect.width + 'px';
-
                 this.reactToResize();
             }, 300)
 
@@ -316,6 +332,24 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 this.set(`_columns.${index}.hidden`, value);
             }
         }
+    }
+
+
+    lastVirtualObserver(val, old, mut) {
+        if(old) {
+            old.ctx._ti._nodes.forEach(i => { 
+                if (i.style){
+                    i.style.paddingBottom = i.lastPaddingBottom + `px`;}
+                    delete i.lastPaddingBottom;
+                }
+            );
+        }
+        val?.ctx._ti._nodes.forEach(i => { 
+            if (i.style){
+                i.lastPaddingBottom = i.style.getPropertyValue('paddingBottom');
+                i.style.paddingBottom = i.lastPaddingBottom + val.h + `px`;}
+            }
+        );
     }
 
     reactToResize() {
