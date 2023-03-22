@@ -19,7 +19,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         _columns: { type: Array, value: () => [] },
         keyField: { type: String },
         pkeyField: { type: String },
-        hasChildField: { type: String, value: '_haschildren' }
+        hasChildField: { type: String, value: '_haschildren' },
+
+        _hasFooter: { type: Boolean, value: false }
     }
 
     static css = css`
@@ -40,9 +42,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         #container {
             width: 100%;
             height: 100%;
-            overflow: auto;
+            display: flex;
+            flex-direction: column;
             position: relative;
             contain: strict;
+            overflow:auto;
         }
 
         #headerContainer{
@@ -54,6 +58,17 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             top: 0;
         }
 
+        #footerContainer {
+            display: flex;
+            width: 100%;
+            background-color: var(--grey-lightest);
+            z-index: 2;
+            bottom: 0;
+            will-change: bottom;
+            height: 32px;
+            position: absolute;
+        }
+
         #header{
             display: var(--pl-grid-header-display, flex);
             border-bottom: 1px solid var(--grey-light);
@@ -63,17 +78,43 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             will-change: width;
         }
 
+        #footer{
+            display: var(--pl-grid-header-display, flex);
+            border-top: 1px solid var(--grey-base);
+            position: sticky;
+            bottom: 0;
+            flex: 1;
+            will-change: width;
+        }
+
+        .footerEl {
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: var(--space-sm);
+            box-sizing: border-box;
+            font: var(--header-font);
+            color: var(--header-color);
+        }
+
+        .footerCell{
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .headerEl[fixed], 
-        .headerEl[action]  {
+        .headerEl[action],
+        .footerEl[fixed],
+        .footerEl[action] {
             position: sticky;
             z-index: 3;
         }
 
-        .headerEl[action] {
+        .headerEl[action], .footerEl[action] {
             right: 0;
         }
         
-        .headerEl[hidden] {
+        .headerEl[hidden], .footerEl[hidden] {
             display: none;
         }
 
@@ -83,6 +124,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: relative;
             display: flex;
             flex-direction: column;
+            flex-shrink:0;
+            padding-bottom: var(--footer-padding, 0);
         }
 
         .row {
@@ -162,7 +205,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             z-index: 1;
          }
 
-
         .top-toolbar ::slotted(*) {
             width: 100%;
             padding: var(--space-sm);
@@ -182,6 +224,21 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
     `;
     static treeFirstCellTemplate = html`<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
+    static footerTemplate = html`
+    <div id="footerContainer">
+        <div id="footer">
+            <template d:repeat="[[_columns]]" d:as="column">
+                <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]"
+                    style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth, 'footer')]]">
+                    <div class="footerCell">
+                        [[column.footerTemplate]]
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>`
+
+
     static template = html`
         <div class="top-toolbar">
             <slot name="top-toolbar"></slot>
@@ -210,6 +267,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     </template>
                 </pl-virtual-scroll>
             </div>
+            [[_getFooterTemplate(_hasFooter)]]
         </div>
         <div class="bottom-toolbar">
             <slot name="bottom-toolbar"></slot>
@@ -224,6 +282,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         const resizeObserver = new ResizeObserver((resizes) => {
             let throttler = throttle(() => {
                 this.$.rowsContainer.style.width = resizes[0].contentRect.width + 'px';
+                if(this._hasFooter) this.$.footerContainer.style.width = resizes[0].contentRect.width + 'px';
                 this.reactToResize();
             }, 300)
 
@@ -249,6 +308,17 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
             this._init();
         }, 0);
+
+
+        this.$.container.addEventListener('scroll', (e) => {
+            if(this._hasFooter) {
+                let throttler = throttle(() => {
+                    this.$.footerContainer.style.bottom = -this.$.container.scrollTop + 'px';
+                }, 100)
+    
+                throttler();
+            }
+        });
     }
 
     _dataObserver(data, old, mut) {
@@ -258,9 +328,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
         }
 
-        if(mut.path != 'data' && this.selected) {
+        if (mut.path != 'data' && this.selected) {
             let m = mut.path.match(/^data\.(\d*)/);
-            if(m[1] == this.data.indexOf(this.selected)) {
+            if (m[1] == this.data.indexOf(this.selected)) {
                 this.forwardNotify(mut, `data.${m[1]}`, 'selected');
             }
         }
@@ -268,7 +338,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     onColumnAttributeChange(event) {
         const { index, attribute, value, init } = event.detail;
-        if(this._columns[index]) {
+        if (this._columns[index]) {
             if (attribute === 'width') {
                 this._changeColumnWidth(this._columns[index], value);
             }
@@ -309,12 +379,19 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 action: column.action || false,
                 index: index,
                 cellTemplate: column._cellTemplate,
+                footerTemplate: column._footerTemplate,
                 node: column
             };
 
             column._index = index;
             return info;
         });
+
+        if(this._columns.some(x => x.footerTemplate)) {
+            this._hasFooter = true;
+            this.$.rowsContainer.style.setProperty('--footer-padding', '32px');
+        }
+        
         this.reactToResize();
     }
 
@@ -338,8 +415,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         // если сортировка была указана в гриде, то выставляем ее по-тихому, без уведомления о мутации
         // иначе по клику на сортировку вызываем мутацию и перезагружаем датасет 
-        if(init) {
-            this.data.sorts =  sorts;
+        if (init) {
+            this.data.sorts = sorts;
         } else {
             this.set('data.sorts', sorts);
         }
@@ -370,7 +447,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         style.push(`justify-content: ${column.justify}`);
-        switch(column.justify) {
+        switch (column.justify) {
             case 'end':
             case 'flex-end':
             case 'right': {
@@ -386,10 +463,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
 
             case 'center':
-            {
-                style.push('text-align: center;')
-                break;
-            }
+                {
+                    style.push('text-align: center;')
+                    break;
+                }
         }
         if (column.fixed) {
             const left = column.index === 0 ? '0' : this._columns[column.index - 1].width + 'px';
@@ -405,10 +482,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     async _onRowClick(event) {
         const res = await this.beforeSelect(event.model.row);
-        if(!res) {
+        if (!res) {
             return false;
         }
-        if (event.model.row) {
+
+
+        // проверка, что выделенный элемент присутствует в списке видимых данных
+        // необходимо при инлайн удалении строки
+        if (event.model.row && this._vdata.includes(event.model.row)) {
             this.selected = event.model.row;
         }
 
@@ -454,7 +535,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         if (!val) {
             return;
         }
-        
+
         if (this.tree) {
             const parents = [];
 
@@ -471,7 +552,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             })
         }
 
-        if(mutation.path != 'selected') {
+        if (mutation.path != 'selected') {
             this.forwardNotify(mutation, `selected`, `data.${this.data.indexOf(this.selected)}`);
         }
     }
@@ -487,9 +568,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             delete this.data.control.treeMode;
         }
     }
-    getTemplateForCell(tree,index) {
-        return tree && index===0 ? PlGrid.treeFirstCellTemplate : undefined ;
+    getTemplateForCell(tree, index) {
+        return tree && index === 0 ? PlGrid.treeFirstCellTemplate : undefined;
     }
+
+    _getFooterTemplate(_hasFooter) {
+        return _hasFooter ? PlGrid.footerTemplate : undefined;
+    }
+
 
     _isPlaceholder(row) {
         return row instanceof PlaceHolder;
