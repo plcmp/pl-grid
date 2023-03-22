@@ -485,7 +485,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         if (!res) {
             return false;
         }
-        if (event.model.row) {
+
+
+        // проверка, что выделенный элемент присутствует в списке видимых данных
+        // необходимо при инлайн удалении строки
+        if (event.model.row && this._vdata.includes(event.model.row)) {
             this.selected = event.model.row;
         }
 
