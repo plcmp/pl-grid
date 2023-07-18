@@ -169,13 +169,10 @@ class PlGridColumn extends PlElement {
         if (!this.width) this.width = this.offsetWidth;
         this._resizeBase = { baseSize: parseInt(this.width), baseMoveOffset: event.screenX };
         event.preventDefault();
-        const moveHandler = (event) => {
-            let throttler = throttle(() => {
-                this.width = Math.max(this.minWidth, this._resizeBase.baseSize + (event.screenX - this._resizeBase.baseMoveOffset));
-            }, 100)
+        const moveHandler = throttle((event) => {
+            this.width = Math.max(this.minWidth, this._resizeBase.baseSize + (event.screenX - this._resizeBase.baseMoveOffset));
+        }, 20)
 
-            throttler();
-        };
         const removeHandlers = () => {
             document.removeEventListener('mousemove', moveHandler);
             document.removeEventListener('mouseup', upHandler);

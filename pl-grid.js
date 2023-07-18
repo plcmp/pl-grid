@@ -1,10 +1,11 @@
-import { css, html, PlElement } from "polylib";
+import { css, html, PlElement, Template } from "polylib";
 
 import '@plcmp/pl-virtual-scroll';
 
 import "@plcmp/pl-icon";
 import "@plcmp/pl-iconset-default";
 import "@plcmp/pl-data-tree";
+import "@plcmp/pl-checkbox";
 
 import { PlResizeableMixin, throttle, PlaceHolder } from '@plcmp/utils';
 
@@ -20,7 +21,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         keyField: { type: String },
         pkeyField: { type: String },
         hasChildField: { type: String, value: '_haschildren' },
-
+        multiSelect: { type: Boolean, value: false },
+        selectedList: { type: Array, value: [] },
         _hasFooter: { type: Boolean, value: false }
     }
 
@@ -46,7 +48,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             flex-direction: column;
             position: relative;
             contain: strict;
-            overflow:auto;
+            overflow: auto;
+            border-radius: var(--border-radius);
         }
 
         #headerContainer{
@@ -223,7 +226,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: none;
         }
     `;
-    static treeFirstCellTemplate = html`<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
+    static checkboxCellTemplate = `<pl-checkbox checked="[[_itemSelected(row, selectedList)]]" on-click="[[_onSelect]]"></pl-checkbox>`;
+    static treeFirstCellTemplate = `<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
     static footerTemplate = html`
     <div id="footerContainer">
         <div id="footer">
@@ -259,7 +263,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                         <div class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
                                 <div style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
-                                    [[getTemplateForCell(tree,column.index)]]
+                                    [[getTemplateForCell(tree, multiSelect, column.index)]]
                                     <span>[[column.cellTemplate]]</span>
                                 </div>
                             </template>
@@ -279,16 +283,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         super.connectedCallback();
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
 
-        const resizeObserver = new ResizeObserver((resizes) => {
-            let throttler = throttle(() => {
-                this.$.rowsContainer.style.width = resizes[0].contentRect.width + 'px';
-                if(this._hasFooter) this.$.footerContainer.style.width = resizes[0].contentRect.width + 'px';
-                this.reactToResize();
-            }, 300)
-
-            throttler();
-        });
-
+        const resizeObserver = new ResizeObserver(throttle((resizes) => {
+            this.$.rowsContainer.style.width = resizes[0].contentRect.width + 'px';
+            if (this._hasFooter) this.$.footerContainer.style.width = resizes[0].contentRect.width + 'px';
+            this.reactToResize();
+        }, 30));
 
         const observer = new MutationObserver((mutationsList) => {
             for (let mutation of mutationsList) {
@@ -309,16 +308,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             this._init();
         }, 0);
 
-
-        this.$.container.addEventListener('scroll', (e) => {
-            if(this._hasFooter) {
-                let throttler = throttle(() => {
-                    this.$.footerContainer.style.bottom = -this.$.container.scrollTop + 'px';
-                }, 100)
-    
-                throttler();
-            }
-        });
+        if (this._hasFooter) {
+            this.$.container.addEventListener('scroll', throttle((e) => {
+                this.$.footerContainer.style.bottom = -this.$.container.scrollTop + 'px';
+            }, 15));
+        }
     }
 
     _dataObserver(data, old, mut) {
@@ -387,11 +381,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             return info;
         });
 
-        if(this._columns.some(x => x.footerTemplate)) {
+        if (this._columns.some(x => x.footerTemplate)) {
             this._hasFooter = true;
             this.$.rowsContainer.style.setProperty('--footer-padding', '32px');
         }
-        
+
         this.reactToResize();
     }
 
@@ -478,6 +472,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     async beforeSelect(model) {
         return true;
+    }
+
+    _itemSelected(item, selectedList) {
+        return this.multiSelect && selectedList.filter(x => x == item).length > 0;
     }
 
     async _onRowClick(event) {
@@ -568,14 +566,40 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             delete this.data.control.treeMode;
         }
     }
-    getTemplateForCell(tree, index) {
-        return tree && index === 0 ? PlGrid.treeFirstCellTemplate : undefined;
+
+    _onSelect(event) {
+        let idx = this.selectedList.indexOf(event.model.row);
+        if(idx == -1) {
+            this.push('selectedList', event.model.row);
+        } else {
+            this.splice('selectedList', idx, 1);
+        }
+    }
+
+    getTemplateForCell(tree, multiSelect, index) {
+        if(index !== 0) {
+            return undefined;
+        }
+        if(!this.tree && !this.multiSelect) {
+            return undefined;
+        }
+
+        if(this.tree && !this.multiSelect) {
+            return new Template(PlGrid.treeFirstCellTemplate);
+        }
+
+        if(!this.tree && this.multiSelect) {
+            return new Template(PlGrid.checkboxCellTemplate);
+        }
+
+        if(this.tree && this.multiSelect) {
+            return new Template(PlGrid.treeFirstCellTemplate + PlGrid.checkboxCellTemplate);
+        }
     }
 
     _getFooterTemplate(_hasFooter) {
         return _hasFooter ? PlGrid.footerTemplate : undefined;
     }
-
 
     _isPlaceholder(row) {
         return row instanceof PlaceHolder;
