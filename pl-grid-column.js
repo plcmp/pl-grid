@@ -246,7 +246,7 @@ class PlGridColumn extends PlElement {
     _getTitle(row, field, kind, format, titleField) {
         if (row) {
             if(titleField) {
-                return row[titleField];
+                return getByPath(row, titleField);
             }
             else {
                 return this._getValue(row, field, kind, format);
@@ -257,10 +257,22 @@ class PlGridColumn extends PlElement {
     _getValue(row, field, kind, format) {
         if (row) {
             if (kind === 'date' && row[field]) {
-                return dayjs(row[field]).format(format || 'DD.MM.YYYY');
+                return dayjs(this.getByPath(row, field)).format(format || 'DD.MM.YYYY');
             }
-            return row[field];
+            return this.getByPath(row, field);
         }
+    }
+    
+    getByPath(object, path, delimiter = '.') {
+        path = path.split(delimiter);
+        let i;
+        for (i = 0; i < path.length - 1; i++) {
+            if (!object[path[i]]) {
+                return;
+            }
+            object = object[path[i]];
+        }
+        return object[path[i]];
     }
 }
 

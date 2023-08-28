@@ -233,7 +233,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         <div id="footer">
             <template d:repeat="[[_columns]]" d:as="column">
                 <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]"
-                    style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth, 'footer')]]">
+                    style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]">
                     <div class="footerCell">
                         [[column.footerTemplate]]
                     </div>
@@ -251,7 +251,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="headerContainer">
                 <div id="header">
                     <template d:repeat="[[_columns]]" d:as="column">
-                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]">
+                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth, 'header')]]">
                             <slot name="[[_getSlotName(column.index)]]"></slot>
                         </div>
                     </template>
@@ -439,29 +439,31 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         else if (column._calculatedWidth) {
             style.push(`flex: 1 1 ${column._calculatedWidth}px`);
         }
-
-        style.push(`justify-content: ${column.justify}`);
-        switch (column.justify) {
-            case 'end':
-            case 'flex-end':
-            case 'right': {
-                style.push('text-align: end')
-                break;
-            }
-
-            case 'start':
-            case 'flex-start':
-            case 'left': {
-                style.push('text-align: start')
-                break;
-            }
-
-            case 'center':
-                {
-                    style.push('text-align: center;')
+        if(!isHeader) {
+            style.push(`justify-content: ${column.justify}`);
+            switch (column.justify) {
+                case 'end':
+                case 'flex-end':
+                case 'right': {
+                    style.push('text-align: end')
                     break;
                 }
+    
+                case 'start':
+                case 'flex-start':
+                case 'left': {
+                    style.push('text-align: start')
+                    break;
+                }
+    
+                case 'center':
+                    {
+                        style.push('text-align: center;')
+                        break;
+                    }
+            }
         }
+        
         if (column.fixed) {
             const left = column.index === 0 ? '0' : this._columns[column.index - 1].width + 'px';
             style.push(`left: ${left}`);
