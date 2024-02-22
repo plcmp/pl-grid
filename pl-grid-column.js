@@ -76,13 +76,12 @@ class PlGridColumn extends PlElement {
             box-sizing: border-box;
             flex-direction: row;
             display: flex;
-            min-height: var(--pl-grid-header-min-height);
+            min-height: var(--pl-base-size);
             overflow: hidden;
-            background: var(--grey-lightest);
             z-index: 2;
             position: sticky;
-            font: var(--header-font);
-            color: var(--header-color);
+            font: var(--pl-text-font);
+            color: var(--pl-text-color);
             will-change: width;
             height: 100%;
             min-width: 1px;
@@ -90,7 +89,7 @@ class PlGridColumn extends PlElement {
             flex-shrink: 0;
         }
 
-        :host ::slotted(*) {
+        :host ::slotted([slot="prefix"]), :host ::slotted([slot="suffix"]) {
             width: 16px;
             height: 16px;
         }
@@ -98,10 +97,27 @@ class PlGridColumn extends PlElement {
         .header {
             width: 100%;
             height: 100%;
-            padding: var(--space-sm);
+            padding: var(--pl-space-sm);
             box-sizing: border-box;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
+            border-inline-end: 1px solid var(--pl-grey-light);
+        }
+
+        .header-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .header-text-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            gap: 4px;
+            justify-content: space-between;
         }
 
         .header-text {
@@ -111,23 +127,22 @@ class PlGridColumn extends PlElement {
             width: 100%;
         }
 
-        :host([resizable]) .column-resizer {
-            cursor: ew-resize;
-            height: 50%;
-            border-inline-end: 1px solid var(--grey-dark);
+        .column-resizer {
+            height: 100%;
             inset-inline-end: 0;
+            inset-block-start: 0;
             position: absolute;
             width: 4px;
-            margin-inline-end: 4px;
         }
 
         :host([resizable]) .column-resizer:hover  {
-            border-inline-end: 2px solid var(--primary-base);
+            cursor: ew-resize;
+            border-inline-end: 2px solid var(--pl-primary-base);
         }
 
         .column-sort {
             cursor: pointer;
-            color: var(--grey-dark);
+            color: var(--pl-grey-dark);
             margin-inline-end: 4px;
         }
     `;
@@ -135,12 +150,17 @@ class PlGridColumn extends PlElement {
     static template = html`
         <div class="header">
             <slot name="prefix"></slot>
-            <span class="header-text">
-                [[header]]
-            </span>
-            <span hidden$="[[!sortable]]" class="column-sort" on-click="[[_onSortClick]]">
-                <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
-            </span>
+            <div class="header-container">
+                <div class="header-text-container">
+                    <span class="header-text">
+                        <slot name="header">[[header]]</slot>
+                    </span>
+                    <span hidden$="[[!sortable]]" class="column-sort" on-click="[[_onSortClick]]">
+                        <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(sort)]]"></pl-icon>
+                    </span>
+                </div>
+                <slot name="filter"></slot>
+            </div>
             <span class="column-resizer" on-mousedown="[[onResize]]"></span>
         </div>
     `;

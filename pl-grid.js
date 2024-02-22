@@ -30,15 +30,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         :host {
             width: 100%;
             height: 100%;
-            border: 1px solid var(--grey-light);
-            border-radius: var(--border-radius);
+            border: 1px solid var(--pl-grey-light);
+            border-radius: var(--pl-border-radius);
             display: flex;
             flex-direction: column;
             position: relative;
             box-sizing: border-box;
-            --pl-grid-active-color: var(--primary-lightest);
-            --pl-grid-active-text-color: var(--text-color);
-            background-color: var(--background-color);
+            background-color: var(--pl-background-color);
         }
 
         #container {
@@ -49,32 +47,31 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: relative;
             contain: strict;
             overflow: auto;
-            border-radius: var(--border-radius);
         }
 
         #headerContainer{
             display: flex;
             width: 100%;
             position: sticky;
-            background-color: var(--grey-lightest);
             z-index: 2;
             top: 0;
         }
 
         #footerContainer {
             display: flex;
+            height: var(--pl-base-size);
             width: 100%;
-            background-color: var(--grey-lightest);
+            background-color: var(--pl-grey-lightest);
             z-index: 2;
             bottom: 0;
             will-change: bottom;
-            height: 32px;
             position: absolute;
         }
 
         #header{
             display: var(--pl-grid-header-display, flex);
-            border-bottom: 1px solid var(--grey-light);
+            background-color: var(--pl-grey-lightest);
+            border-bottom: 1px solid var(--pl-grey-light);
             position: sticky;
             top: 0;
             flex: 1;
@@ -83,7 +80,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         #footer{
             display: var(--pl-grid-header-display, flex);
-            border-top: 1px solid var(--grey-base);
+            border-top: 1px solid var(--pl-grey-light);
             position: sticky;
             bottom: 0;
             flex: 1;
@@ -94,10 +91,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: flex;
             align-items: center;
             height: 100%;
-            padding: var(--space-sm);
+            padding: var(--pl-space-sm);
             box-sizing: border-box;
-            font: var(--header-font);
-            color: var(--header-color);
+            font: var(--pl-header-font);
+            color: var(--pl-header-color);
         }
 
         .footerCell{
@@ -115,6 +112,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .headerEl[action], .footerEl[action] {
             right: 0;
+            background-color: var(--pl-grey-lightest);
+            border-inline-start: 1px solid var(--pl-grey-light);
         }
         
         .headerEl[hidden], .footerEl[hidden] {
@@ -135,8 +134,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: flex;
             flex-direction: row;
             border-top: 1px solid transparent;
-            border-bottom: 1px solid var(--grey-light);
-            background-color: var(--background-color);
+            border-bottom: 1px solid var(--pl-grey-light);
+            background-color: var(--pl-background-color);
             width: 100%;
             box-sizing: border-box;
             position: relative;
@@ -157,17 +156,17 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .cell {
             display: flex;
             min-width: 0;
-            padding: var(--space-sm);
+            padding: var(--pl-space-sm);
             align-items: center;
-            color: var(--text-color);
+            color: var(--pl-text-color);
             background-color: inherit;
             will-change: width;
             position: relative;
             box-sizing: border-box;
-            border-right: var(--pl-grid-cell-border, none);
-            height: var(--pl-grid-cell-min-height, 32px);
+            border-inline-end: 1px solid var(--pl-grey-light);
+            height: var(--pl-grid-cell-min-height, var(--pl-base-size));
         }
-
+        
         .cell > span {
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -178,16 +177,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .cell[fixed] {
             position: sticky;
-            border-right: 1px solid var(--grey-light);
-            background-color: var(--grey-lightest);
+            border-inline-start: 1px solid var(--pl-grey-light);
+            background-color: var(--pl-grey-lightest);
             z-index:1;
         }
 
         .cell[action] {
             position: sticky;
             right: 0;
-            border-left: 1px solid var(--grey-light);
-            background-color: var(--grey-lightest);
+            border-inline-end: 1px solid var(--pl-grey-light);
+            background-color: var(--pl-grey-lightest);
             z-index:1;
         }
 
@@ -200,8 +199,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .row[active], 
         .row[active] .cell{
             white-space: normal;
-            background-color: var(--pl-grid-active-color);
-            color: var(--pl-grid-active-text-color);
+            background-color: var(--pl-primary-lightest);
+            color: var(--pl-text-color);
         }
 
         .row[active]{
@@ -210,15 +209,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .top-toolbar ::slotted(*) {
             width: 100%;
-            padding: var(--space-sm);
+            padding: var(--pl-space-sm);
             box-sizing: border-box;
-            border-bottom: 1px solid var(--grey-light);
+            border-bottom: 1px solid var(--pl-grey-light);
         }
 
         .bottom-toolbar ::slotted(*) {
-            border-top: 1px solid var(--grey-light);
+            border-top: 1px solid var(--pl-grey-light);
             width: 100%;
-            padding: var(--space-sm);
+            padding: var(--pl-space-sm);
             box-sizing: border-box;
         }
 
@@ -383,7 +382,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         if (this._columns.some(x => x.footerTemplate)) {
             this._hasFooter = true;
-            this.$.rowsContainer.style.setProperty('--footer-padding', '32px');
+            this.$.rowsContainer.style.setProperty('--footer-padding', 'var(--pl-base-size)');
         }
 
         this.reactToResize();
