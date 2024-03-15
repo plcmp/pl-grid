@@ -179,7 +179,7 @@ class PlGridColumn extends PlElement {
             this._cellTemplate._hctx = [...cellTpl._hctx, this];
         }
         else {
-            this._cellTemplate = html`<span title$="[[_getTitle(row, field, kind, format, titleField)]]">[[_getValue(row, field, kind, format)]]</span>`;
+            this._cellTemplate = html`<span style="width:100%" title$="[[_getTitle(row, field, kind, format, titleField)]]">[[_getValue(row, field, kind, format)]]</span>`;
             this._cellTemplate._hctx = [this];
         }
     }

@@ -23,7 +23,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         hasChildField: { type: String, value: '_haschildren' },
         multiSelect: { type: Boolean, value: false },
         selectedList: { type: Array, value: [] },
-        _hasFooter: { type: Boolean, value: false }
+        _hasFooter: { type: Boolean, value: false },
+        getRowPartName: { type: Function, value: () => { } },
+        getCellPartName: { type: Function, value: () => { } }
     }
 
     static css = css`
@@ -87,6 +89,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             will-change: width;
         }
 
+        .headerEl {
+            height: 100%;
+            box-sizing: border-box;
+        }
+
         .footerEl {
             display: flex;
             align-items: center;
@@ -103,15 +110,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         .headerEl[fixed], 
-        .headerEl[action],
-        .footerEl[fixed],
-        .footerEl[action] {
+        .footerEl[fixed] {
             position: sticky;
             z-index: 3;
         }
 
-        .headerEl[action], .footerEl[action] {
+        .headerEl[action],
+        .footerEl[action] {
             right: 0;
+            position: var(--pl-action-column-position, sticky);
             background-color: var(--pl-grey-lightest);
             border-inline-start: 1px solid var(--pl-grey-light);
         }
@@ -136,6 +143,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             border-top: 1px solid transparent;
             border-bottom: 1px solid var(--pl-grey-light);
             background-color: var(--pl-background-color);
+            color: var(--pl-text-color);
             width: 100%;
             box-sizing: border-box;
             position: relative;
@@ -158,7 +166,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             min-width: 0;
             padding: var(--pl-space-sm);
             align-items: center;
-            color: var(--pl-text-color);
             background-color: inherit;
             will-change: width;
             position: relative;
@@ -167,12 +174,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             height: var(--pl-grid-cell-min-height, var(--pl-base-size));
         }
         
-        .cell > span {
+        .cell * {
             white-space: nowrap;
+            word-wrap: break-word;
             text-overflow: ellipsis;
             overflow: hidden;
-            line-height: 24px;
-            width: 100%;
+            max-width: 100%;
         }
 
         .cell[fixed] {
@@ -183,9 +190,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         .cell[action] {
-            position: sticky;
+            position: var(--pl-action-column-position, sticky);
             right: 0;
-            border-inline-end: 1px solid var(--pl-grey-light);
+            border-inline-start: 1px solid var(--pl-grey-light);
             background-color: var(--pl-grey-lightest);
             z-index:1;
         }
@@ -256,14 +263,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     </template>
                 </div>
             </div>
-            <div id="rowsContainer">
+            <div id="rowsContainer" part="rows">
                 <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
                     <template id="tplRow">
-                        <div class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
+                        <div part$="[[_getRowParts(row)]]" class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
-                                <div style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                <div part$="[[_getCellParts(row, column)]]"  style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
                                     [[getTemplateForCell(tree, multiSelect, column.index)]]
-                                    <span>[[column.cellTemplate]]</span>
+                                    <span style="width:100%">[[column.cellTemplate]]</span>
                                 </div>
                             </template>
                         </div>
@@ -284,6 +291,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         const resizeObserver = new ResizeObserver(throttle((resizes) => {
             this.$.rowsContainer.style.width = resizes[0].contentRect.width + 'px';
+            if (this.$.container.offsetWidth >= resizes[0].contentRect.width) {
+                this.style.setProperty('--pl-action-column-position', 'absolute');
+            } else {
+                this.style.setProperty('--pl-action-column-position', 'sticky');
+            }
+
+
             if (this._hasFooter) this.$.footerContainer.style.width = resizes[0].contentRect.width + 'px';
             this.reactToResize();
         }, 30));
@@ -342,6 +356,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 this.set(`_columns.${index}.hidden`, value);
             }
         }
+    }
+
+    _getRowParts(row) {
+        let rowNames = this.getRowPartName?.(row) || '';
+        return ('row ' + rowNames).trim();
+    }
+
+    _getCellParts(row, column) {
+        let cellNames = this.getCellPartName?.(row, column) || '';
+        return ('cell ' + cellNames).trim();
     }
 
     reactToResize() {
@@ -438,7 +462,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         else if (column._calculatedWidth) {
             style.push(`flex: 1 1 ${column._calculatedWidth}px`);
         }
-        if(!isHeader) {
+        if (!isHeader) {
             style.push(`justify-content: ${column.justify}`);
             switch (column.justify) {
                 case 'end':
@@ -447,14 +471,14 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     style.push('text-align: end')
                     break;
                 }
-    
+
                 case 'start':
                 case 'flex-start':
                 case 'left': {
                     style.push('text-align: start')
                     break;
                 }
-    
+
                 case 'center':
                     {
                         style.push('text-align: center;')
@@ -462,7 +486,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     }
             }
         }
-        
+
         if (column.fixed) {
             const left = column.index === 0 ? '0' : this._columns[column.index - 1].width + 'px';
             style.push(`left: ${left}`);
@@ -570,7 +594,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     _onSelect(event) {
         let idx = this.selectedList.indexOf(event.model.row);
-        if(idx == -1) {
+        if (idx == -1) {
             this.push('selectedList', event.model.row);
         } else {
             this.splice('selectedList', idx, 1);
@@ -578,22 +602,22 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     getTemplateForCell(tree, multiSelect, index) {
-        if(index !== 0) {
+        if (index !== 0) {
             return undefined;
         }
-        if(!this.tree && !this.multiSelect) {
+        if (!this.tree && !this.multiSelect) {
             return undefined;
         }
 
-        if(this.tree && !this.multiSelect) {
+        if (this.tree && !this.multiSelect) {
             return new Template(PlGrid.treeFirstCellTemplate);
         }
 
-        if(!this.tree && this.multiSelect) {
+        if (!this.tree && this.multiSelect) {
             return new Template(PlGrid.checkboxCellTemplate);
         }
 
-        if(this.tree && this.multiSelect) {
+        if (this.tree && this.multiSelect) {
             return new Template(PlGrid.treeFirstCellTemplate + PlGrid.checkboxCellTemplate);
         }
     }
