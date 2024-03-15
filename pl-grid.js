@@ -121,6 +121,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: var(--pl-action-column-position, sticky);
             background-color: var(--pl-grey-lightest);
             border-inline-start: 1px solid var(--pl-grey-light);
+            z-index: 3;
         }
         
         .headerEl[hidden], .footerEl[hidden] {
