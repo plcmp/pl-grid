@@ -279,7 +279,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
-        const resizeObserver = new ResizeObserver(throttle(() => {
+        const headerResizeObserver = new ResizeObserver(throttle(() => {
             this.$.rowsContainer.style.width = this.$.header.offsetWidth + 'px';
             this.$.footerContainer.style.width = this.$.header.offsetWidth + 'px';
 
@@ -288,13 +288,22 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             } else {
                 this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
             }
+            this.reactToResize();
+        }, 30));
+
+        headerResizeObserver.observe(this.$.header);
+
+        const containerResizeObserver = new ResizeObserver(throttle(() => {
             if (this.$.container.scrollHeight <= this.$.container.offsetHeight) {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'absolute');
             } else {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'sticky');
             }
+    
             this.reactToResize();
         }, 30));
+
+        containerResizeObserver.observe(this.$.container);
 
         const observer = new MutationObserver((mutationsList) => {
             for (let mutation of mutationsList) {
@@ -304,7 +313,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
         });
 
-        resizeObserver.observe(this.$.container);
         observer.observe(this, { attributes: false, childList: true, subtree: true });
 
         // let nested column components upgrade, then call _init method
