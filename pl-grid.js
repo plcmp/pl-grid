@@ -66,27 +66,21 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             background-color: var(--pl-grey-lightest);
             z-index: 2;
             bottom: 0;
-            will-change: bottom;
-            position: var(--pl-footer-container-position, sticky);
+            position: var(--pl-footer-container-position, absolute);
         }
 
         #header{
             display: var(--pl-grid-header-display, flex);
             background-color: var(--pl-grey-lightest);
             border-bottom: 1px solid var(--pl-grey-light);
-            position: sticky;
-            top: 0;
             flex: 1;
-            will-change: width;
         }
 
         #footer{
             display: var(--pl-grid-header-display, flex);
+            background-color: var(--pl-grey-lightest);
             border-top: 1px solid var(--pl-grey-light);
-            position: sticky;
-            bottom: 0;
             flex: 1;
-            will-change: width;
         }
 
         .headerEl {
@@ -167,7 +161,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             padding: var(--pl-space-sm);
             align-items: center;
             background-color: inherit;
-            will-change: width;
             position: relative;
             box-sizing: border-box;
             border-inline-end: 1px solid var(--pl-grey-light);
@@ -190,7 +183,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         .cell[action] {
-            position: var(--pl-action-column-position, sticky);
+            position: var(--pl-action-column-position, absolute);
             right: 0;
             border-inline-start: 1px solid var(--pl-grey-light);
             background-color: var(--pl-grey-lightest);
@@ -287,15 +280,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         super.connectedCallback();
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
         const resizeObserver = new ResizeObserver(throttle(() => {
-            this.$.rowsContainer.style.width = this.$.headerContainer.width + 'px';
-            this.$.footerContainer.style.width = this.$.headerContainer.width + 'px';
+            this.$.rowsContainer.style.width = this.$.header.offsetWidth + 'px';
+            this.$.footerContainer.style.width = this.$.header.offsetWidth + 'px';
 
-            if (this.$.container.offsetWidth >= this.$.headerContainer.width) {
+            if (this.$.container.offsetWidth >= this.$.header.offsetWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
             } else {
                 this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
             }
-            if (this.$.container.scrollHeight == this.$.container.offsetHeight) {
+            if (this.$.container.scrollHeight <= this.$.container.offsetHeight) {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'absolute');
             } else {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'sticky');
