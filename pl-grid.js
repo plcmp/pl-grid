@@ -46,8 +46,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             height: 100%;
             display: flex;
             flex-direction: column;
-            position: relative;
-            contain: strict;
             overflow: auto;
         }
 
@@ -280,8 +278,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         super.connectedCallback();
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
         const headerResizeObserver = new ResizeObserver(throttle(() => {
-            this.$.rowsContainer.style.width = this.$.header.offsetWidth + 'px';
-            this.$.footerContainer.style.width = this.$.header.offsetWidth + 'px';
+            this.$.rowsContainer.style.width = this.$.header.offsetWidth  + 'px';
 
             if (this.$.container.offsetWidth >= this.$.header.offsetWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
