@@ -86,7 +86,6 @@ class PlGridColumn extends PlElement {
             height: 100%;
             min-width: 1px;
             max-width: 100%;
-            flex-shrink: 0;
         }
 
         :host ::slotted([slot="prefix"]), :host ::slotted([slot="suffix"]) {
@@ -284,6 +283,7 @@ class PlGridColumn extends PlElement {
     }
     
     getByPath(object, path, delimiter = '.') {
+        if(path == undefined) return '';
         path = path.split(delimiter);
         let i;
         for (i = 0; i < path.length - 1; i++) {
