@@ -47,6 +47,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: flex;
             flex-direction: column;
             overflow: auto;
+            position:relative;
         }
 
         #headerContainer{
