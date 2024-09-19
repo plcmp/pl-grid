@@ -59,7 +59,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         #footerContainer {
-            display: flex;
+            display: var(--pl-footer-display, none);
             height: var(--pl-base-size);
             width: 100%;
             background-color: var(--pl-grey-lightest);
@@ -167,7 +167,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
         
         .cell * {
-            white-space: nowrap;
+            white-space: var(--pl-grid-cell-white-space, nowrap);
             word-wrap: break-word;
             text-overflow: ellipsis;
             overflow: hidden;
@@ -367,7 +367,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             if (!el.width) {
                 this.set(`_columns.${el.index}._calculatedWidth`, el.node.offsetWidth);
             }
-        })
+        })     
         setTimeout(() => {
             this.$.scroller.render();
         }, 0);
@@ -398,6 +398,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             return info;
         });
 
+        if(this._columns.find(x => x.footerTemplate)) {
+            this.$.container.style.setProperty('--pl-footer-display', 'flex');
+        }
 
         this.reactToResize();
     }

@@ -265,7 +265,7 @@ class PlGridColumn extends PlElement {
     _getTitle(row, field, kind, format, titleField) {
         if (row) {
             if(titleField) {
-                return getByPath(row, titleField);
+                return this.getByPath(row, titleField);
             }
             else {
                 return this._getValue(row, field, kind, format);
