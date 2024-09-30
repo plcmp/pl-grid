@@ -117,6 +117,7 @@ class PlGridColumn extends PlElement {
             display: flex;
             gap: 4px;
             justify-content: space-between;
+            text-align: start;
         }
 
         .header-text {

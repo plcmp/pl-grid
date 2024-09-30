@@ -107,6 +107,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .footerEl[fixed] {
             position: sticky;
             z-index: 3;
+            background-color: inherit;
         }
 
         .headerEl[action],
@@ -115,6 +116,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: var(--pl-action-column-position, sticky);
             background-color: var(--pl-grey-lightest);
             border-inline-start: 1px solid var(--pl-grey-light);
+            border-inline-end: none;
             z-index: 3;
         }
         
@@ -158,21 +160,21 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .cell {
             display: flex;
             min-width: 0;
-            padding: var(--pl-space-sm);
             align-items: center;
             background-color: inherit;
-            position: relative;
             box-sizing: border-box;
+            position: relative;
             border-inline-end: 1px solid var(--pl-grey-light);
             height: var(--pl-grid-cell-min-height, var(--pl-base-size));
+            white-space: var(--pl-grid-cell-white-space, nowrap);
         }
         
-        .cell * {
-            white-space: var(--pl-grid-cell-white-space, nowrap);
+        .cell > * {
             word-wrap: break-word;
             text-overflow: ellipsis;
             overflow: hidden;
             max-width: 100%;
+            padding: 0 var(--pl-space-sm);
         }
 
         .cell[fixed] {
@@ -186,6 +188,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: var(--pl-action-column-position, absolute);
             right: 0;
             border-inline-start: 1px solid var(--pl-grey-light);
+            border-inline-end: none;
             background-color: var(--pl-grey-lightest);
             z-index:1;
         }
@@ -198,7 +201,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .row:hover .cell,
         .row[active], 
         .row[active] .cell{
-            white-space: normal;
             background-color: var(--pl-primary-lightest);
             color: var(--pl-text-color);
         }
@@ -225,11 +227,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: none;
         }
     `;
-    static checkboxCellTemplate = `<pl-checkbox checked="[[_itemSelected(row, selectedList)]]" on-click="[[_onSelect]]"></pl-checkbox>`;
+    static checkboxCellTemplate = `<span><pl-checkbox checked="[[_itemSelected(row, selectedList)]]" on-click="[[_onSelect]]"></pl-checkbox></span>`;
     static treeFirstCellTemplate = `<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
 
     static template = html`
-        <style id="style"></style>
         <div class="top-toolbar">
             <slot name="top-toolbar"></slot>
         </div>
@@ -237,7 +238,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="headerContainer">
                 <div id="header">
                     <template d:repeat="[[_columns]]" d:as="column">
-                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth, 'header')]]">
+                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'headerEl)]]">
                             <slot name="[[_getSlotName(column.index)]]"></slot>
                         </div>
                     </template>
@@ -248,9 +249,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     <template id="tplRow">
                         <div part$="[[_getRowParts(row)]]" class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_columns]]" d:as="column">
-                                <div part$="[[_getCellParts(row, column)]]"  style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]" class="cell" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                <div part$="[[_getCellParts(row, column)]]" class$="[[_getCellClass(column, 'cell')]]" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
                                     [[getTemplateForCell(tree, multiSelect, column.index)]]
-                                    <span style="width:100%">[[column.cellTemplate]]</span>
+                                    [[column.cellTemplate]]
                                 </div>
                             </template>
                         </div>
@@ -260,8 +261,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="footerContainer">
                 <div id="footer">
                     <template d:repeat="[[_columns]]" d:as="column">
-                        <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]"
-                            style$="[[_getCellStyle(column.index, column.width, column._calculatedWidth)]]">
+                        <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'footerEl)]]">
                             <div class="footerCell">
                                 [[column.footerTemplate]]
                             </div>
@@ -274,21 +274,28 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <slot name="bottom-toolbar"></slot>
         </div>
         <pl-data-tree bypass="[[!tree]]" key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
+        <style id="columnSizes"></style>
     `;
 
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
-        const headerResizeObserver = new ResizeObserver(throttle(() => {
-            this.$.rowsContainer.style.width = this.$.header.offsetWidth  + 'px';
+        const styleComment = Array.from(this.childNodes)
+            .find(node => node.nodeType === Node.COMMENT_NODE && node._tpl && node._tpl.tpl.matches('[is="extra styles"]'));
 
-            if (this.$.container.offsetWidth >= this.$.header.offsetWidth) {
+        if (styleComment) this.shadowRoot.append(styleComment._tpl.tpl.content.cloneNode(true));
+
+        const headerResizeObserver = new ResizeObserver(throttle(() => {
+            let offsetWidth = this.$.header.offsetWidth;
+            this.$.rowsContainer.style.width = offsetWidth + 'px';
+
+            if (this.$.container.offsetWidth >= offsetWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
             } else {
                 this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
             }
             this.reactToResize();
-        }, 30));
+        }, 10));
 
         headerResizeObserver.observe(this.$.header);
 
@@ -298,9 +305,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             } else {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'sticky');
             }
-    
+
             this.reactToResize();
-        }, 30));
+        }, 10));
 
         containerResizeObserver.observe(this.$.container);
 
@@ -338,6 +345,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
     }
 
+    _getCellClass(col, el) {
+        return el + ' ' + col.class;
+    }
+
     onColumnAttributeChange(event) {
         const { index, attribute, value, init } = event.detail;
         if (this._columns[index]) {
@@ -364,14 +375,64 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     reactToResize() {
+        let colStyles = {};
         this._columns.forEach((el) => {
             if (!el.width) {
                 this.set(`_columns.${el.index}._calculatedWidth`, el.node.offsetWidth);
             }
-        })     
+
+            let style = [];
+            if (el.width) {
+                style.push(`width: ${el.width}px`);
+            }
+            else if (el._calculatedWidth) {
+                style.push(`flex: 1 1 ${el._calculatedWidth}px`);
+            }
+
+            style.push(`justify-content: ${el.justify}`);
+            switch (el.justify) {
+                case 'end':
+                case 'flex-end':
+                case 'right': {
+                    style.push('text-align: end')
+                    break;
+                }
+
+                case 'start':
+                case 'flex-start':
+                case 'left': {
+                    style.push('text-align: start')
+                    break;
+                }
+
+                case 'center':
+                    {
+                        style.push('text-align: center;')
+                        break;
+                    }
+            }
+
+            if (el.fixed) {
+                const left = el.index === 0 ? '0' : this._columns[el.index - 1].width + 'px';
+                style.push(`left: ${left}`);
+            }
+
+            colStyles[el.class] = style.join(';');
+        });
+
+        let classes = ``;
+        for (let cls in colStyles) {
+            classes += '.' + cls + `{
+                ${colStyles[cls]}
+            }  `
+        }
+
+        this.$.columnSizes.textContent = classes;
+
         setTimeout(() => {
+            // необходимо для отрисовки грида во вкладках, которые изнчально скрыты
             this.$.scroller.render();
-        }, 0);
+        })
     }
 
     _init() {
@@ -392,14 +453,15 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 index: index,
                 cellTemplate: column._cellTemplate,
                 footerTemplate: column._footerTemplate,
-                node: column
+                node: column,
+                class: 'column' + index
             };
 
             column._index = index;
             return info;
         });
 
-        if(this._columns.find(x => x.footerTemplate)) {
+        if (this._columns.find(x => x.footerTemplate)) {
             this.$.container.style.setProperty('--pl-footer-display', 'flex');
         }
 
@@ -438,55 +500,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         this.reactToResize();
     }
 
+    _changeColumnsSizeStyle() {
+        
+    }
+
     _getSlotName(index) {
         return `column-${index}`;
     }
 
     _getCellStyle(index, width, internal, isHeader) {
-        const column = this._columns[index];
-        const style = [];
-
-        if (!column) {
-            return '';
-        }
-
-        if (column.width) {
-            style.push(`width: ${column.width}px`);
-        }
-        else if (column._calculatedWidth) {
-            style.push(`flex: 1 1 ${column._calculatedWidth}px`);
-        }
-        if (!isHeader) {
-            style.push(`justify-content: ${column.justify}`);
-            switch (column.justify) {
-                case 'end':
-                case 'flex-end':
-                case 'right': {
-                    style.push('text-align: end')
-                    break;
-                }
-
-                case 'start':
-                case 'flex-start':
-                case 'left': {
-                    style.push('text-align: start')
-                    break;
-                }
-
-                case 'center':
-                    {
-                        style.push('text-align: center;')
-                        break;
-                    }
-            }
-        }
-
-        if (column.fixed) {
-            const left = column.index === 0 ? '0' : this._columns[column.index - 1].width + 'px';
-            style.push(`left: ${left}`);
-        }
-
-        return style.join(';');
+        return '';
     }
 
     async beforeSelect(model) {
@@ -545,7 +568,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             return '';
         }
 
-        return row._opened ? 'triangle-down' : 'triangle-right';
+        return row._opened ? 'chevron-down' : 'chevron-right';
     }
 
     _selectedObserver(val, old, mutation) {
