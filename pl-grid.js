@@ -70,7 +70,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         #header{
-            display: var(--pl-grid-header-display, flex);
+            display: grid;
             background-color: var(--pl-grey-lightest);
             border-bottom: 1px solid var(--pl-grey-light);
             flex: 1;
@@ -163,18 +163,20 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             align-items: center;
             background-color: inherit;
             box-sizing: border-box;
-            position: relative;
             border-inline-end: 1px solid var(--pl-grey-light);
             height: var(--pl-grid-cell-min-height, var(--pl-base-size));
             white-space: var(--pl-grid-cell-white-space, nowrap);
         }
-        
+
         .cell > * {
+            padding: 0 var(--pl-space-sm);
+            box-sizing: border-box;
+        }
+        
+        .cell * {
             word-wrap: break-word;
             text-overflow: ellipsis;
             overflow: hidden;
-            max-width: 100%;
-            padding: 0 var(--pl-space-sm);
         }
 
         .cell[fixed] {
@@ -223,14 +225,20 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             box-sizing: border-box;
         }
 
+        .multi-checkbox {
+            height: var(--pl-base-size);
+            width: var(--pl-base-size);
+        }
+
         pl-virtual-scroll {
             display: none;
         }
     `;
-    static checkboxCellTemplate = `<span><pl-checkbox checked="[[_itemSelected(row, selectedList)]]" on-click="[[_onSelect]]"></pl-checkbox></span>`;
+    static checkboxCellTemplate = `<pl-checkbox class="multi-checkbox" checked="[[_itemSelected(row, selectedList)]]" on-click="[[_onSelect]]"></pl-checkbox>`;
     static treeFirstCellTemplate = `<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
 
     static template = html`
+        <style id="columnSizes"></style>
         <div class="top-toolbar">
             <slot name="top-toolbar"></slot>
         </div>
@@ -248,7 +256,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
                     <template id="tplRow">
                         <div part$="[[_getRowParts(row)]]" class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
-                            <template d:repeat="[[_columns]]" d:as="column">
+                            <template d:repeat="[[_filterCols(_columns)]]" d:as="column">
                                 <div part$="[[_getCellParts(row, column)]]" class$="[[_getCellClass(column, 'cell')]]" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
                                     [[getTemplateForCell(tree, multiSelect, column.index)]]
                                     [[column.cellTemplate]]
@@ -260,7 +268,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             </div>
             <div id="footerContainer">
                 <div id="footer">
-                    <template d:repeat="[[_columns]]" d:as="column">
+                    <template d:repeat="[[_filterCols(_columns)]]" d:as="column">
                         <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'footerEl)]]">
                             <div class="footerCell">
                                 [[column.footerTemplate]]
@@ -274,7 +282,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <slot name="bottom-toolbar"></slot>
         </div>
         <pl-data-tree bypass="[[!tree]]" key-field="[[keyField]]" pkey-field="[[pkeyField]]" has-child-field="[[hasChildField]]" in="{{data}}" out="{{_vdata}}"></pl-data-tree>
-        <style id="columnSizes"></style>
     `;
 
     connectedCallback() {
@@ -314,7 +321,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         const observer = new MutationObserver((mutationsList) => {
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList') {
-                    this._init();
+                    // this._init();
                 }
             }
         });
@@ -375,18 +382,22 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     reactToResize() {
+        if (this._columns.length == 0) {
+            return;
+        }
         let colStyles = {};
-        this._columns.forEach((el) => {
-            if (!el.width) {
-                this.set(`_columns.${el.index}._calculatedWidth`, el.node.offsetWidth);
-            }
+        let realColumns = this._columns.filter(x => x.headerCol == false);
+        let columns = realColumns.map(x => x.width ? x.width + 'px' : '1fr').join(' ');
+        let maxRows = Math.max(...this._columns.map(o => o.row), 0);
 
+        this._columns.forEach((el) => {
             let style = [];
             if (el.width) {
                 style.push(`width: ${el.width}px`);
+                style.push(`flex-shrink: 0`);
             }
-            else if (el._calculatedWidth) {
-                style.push(`flex: 1 1 ${el._calculatedWidth}px`);
+            else {
+                style.push(`flex-basis: ${el.node.offsetWidth}px`);
             }
 
             style.push(`justify-content: ${el.justify}`);
@@ -405,27 +416,57 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     break;
                 }
 
-                case 'center':
-                    {
-                        style.push('text-align: center;')
-                        break;
-                    }
+                case 'center': {
+                    style.push('text-align: center;')
+                    break;
+                }
             }
 
             if (el.fixed) {
-                const left = el.index === 0 ? '0' : this._columns[el.index - 1].width + 'px';
+                const left = realColumns.findIndex(x => x.index == el.index) == 0 ? '0' : realColumns[el.index - 1].width + 'px';
                 style.push(`left: ${left}`);
             }
 
-            colStyles[el.class] = style.join(';');
+            colStyles['.' + el.class] = style.join(';');
+            colStyles['.headerEl.' + el.class] = el.headerCol ? `grid-area: ${el.class}; border-bottom: 1px solid var(--pl-grey-light)` : `grid-area: ${el.class}`;
         });
 
         let classes = ``;
         for (let cls in colStyles) {
-            classes += '.' + cls + `{
+            classes += cls + `{
                 ${colStyles[cls]}
             }  `
         }
+
+        const matrix = Array.from({ 'length': maxRows }, () => Array(realColumns.length).fill(null));
+        for (let i = maxRows - 1; i != -1; i--) {
+            for (let j = 0; j < realColumns.length; j++) {
+                if (matrix[i + 1] == undefined) {
+                    let childCol = this._columns.find(x => x.index == realColumns[j].index);
+                    matrix[i][j] = { class: childCol.class, parentIndex: childCol.parentIndex };
+                } else {
+                    let el = this._columns.find(x => x.index == matrix[i + 1][j].parentIndex && x.row == i + 1);
+                    if (el) {
+                        matrix[i][j] = { class: el.class, parentIndex: el.parentIndex };;
+                    } else {
+                        matrix[i][j] = { class: matrix[i + 1][j].class, parentIndex: matrix[i + 1][j].parentIndex };;
+                    }
+                }
+            }
+        }
+
+
+        const joined = matrix.map(x => x.map(y => y.class).join(' '));
+        let areas = '';
+        joined.forEach((el) => {
+            areas += `"${el}"`
+        })
+
+        classes += `#header {
+            grid-template-columns: ${columns};    
+            grid-template-rows: repeat(${maxRows}, auto);
+            grid-template-areas: ${areas};
+        }`;
 
         this.$.columnSizes.textContent = classes;
 
@@ -437,6 +478,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
     _init() {
         const columnsNodes = Array.prototype.slice.call(this.querySelectorAll('pl-grid-column'));
+        let row = 1;
         this._columns = columnsNodes.map((column, index) => {
             column.setAttribute('slot', `column-${index}`);
             const info = {
@@ -446,18 +488,31 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 field: column.field,
                 justify: column.justify,
                 width: column.width ? parseInt(column.width) : null,
-                _calculatedWidth: null,
                 resizable: column.resizable,
                 fixed: column.fixed || false,
                 action: column.action || false,
                 index: index,
+                parentIndex: column.parentIndex,
                 cellTemplate: column._cellTemplate,
                 footerTemplate: column._footerTemplate,
                 node: column,
-                class: 'column' + index
+                class: 'column' + index,
+                headerCol: false,
+                row: column.row || row
             };
 
             column._index = index;
+
+            let childColumns = Array.prototype.slice.call(column.querySelectorAll(':scope > pl-grid-column'));
+            if (childColumns.length > 0) {
+                info.headerCol = true;
+                childColumns.forEach((el) => {
+                    el.parentIndex = info.index;
+                    el.row = info.row + 1;
+                    this.append(el);
+                });
+            }
+
             return info;
         });
 
@@ -466,6 +521,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         this.reactToResize();
+    }
+
+    _filterCols(cols) {
+        return cols.filter(x => x.headerCol == false)
     }
 
     _isRowActive(row, selected) {
@@ -500,16 +559,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         this.reactToResize();
     }
 
-    _changeColumnsSizeStyle() {
-        
-    }
-
     _getSlotName(index) {
         return `column-${index}`;
-    }
-
-    _getCellStyle(index, width, internal, isHeader) {
-        return '';
     }
 
     async beforeSelect(model) {
