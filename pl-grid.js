@@ -289,7 +289,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             let offsetWidth = this.$.header.offsetWidth;
 
             this.$.rowsContainer.style.setProperty('width', offsetWidth + 'px')
-            this.$.rowsContainer.style.setProperty('contain-intrinsic-width', offsetWidth + 'px')
 
             if (this.$.container.offsetWidth >= offsetWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
@@ -307,6 +306,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             } else {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'sticky');
             }
+            this.$.rowsContainer.style.setProperty('contain-intrinsic-width', this.$.container.offsetWidth + 'px')
 
             this.reactToResize();
         }, 10));
@@ -585,8 +585,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         if (event.model.row instanceof PlaceHolder) {
             const rn = this._vdata.indexOf(event.model.row);
+            this.data.load(event.model.row)
             this.splice('_vdata', rn, 1);
-            this.data.load(rn)
         }
     }
 
