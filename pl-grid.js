@@ -16,7 +16,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         data: { type: Array, value: () => [], observer: '_dataObserver' },
         selected: { type: Object, value: () => null, observer: '_selectedObserver' },
         tree: { type: Boolean, observer: '_treeModeChange' },
-        _vdata: { type: Array, value: () => [] },
+        _vdata: { type: Array, value: () => [], observer: '_vdataObserver' },
         _columns: { type: Array, value: () => [] },
         keyField: { type: String },
         pkeyField: { type: String },
@@ -131,6 +131,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: flex;
             flex-direction: column;
             flex-shrink:0;
+            content-visibility: auto;
         }
 
         .row {
@@ -152,7 +153,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             top: 0;
             left:0;
             display: flex;
-            content:'Загрузка...';
+            content:'Подгрузить еще...';
             align-items: center;
             justify-content: center;
         }
@@ -253,28 +254,20 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 </div>
             </div>
             <div id="rowsContainer" part="rows">
-                <pl-virtual-scroll canvas="[[$.rowsContainer]]" items="{{_vdata}}" as="row" id="scroller">
-                    <template id="tplRow">
-                        <div part$="[[_getRowParts(row)]]" class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
-                            <template d:repeat="[[_filterCols(_columns)]]" d:as="column">
-                                <div part$="[[_getCellParts(row, column)]]" class$="[[_getCellClass(column, 'cell')]]" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
-                                    [[getTemplateForCell(tree, multiSelect, column.index)]]
-                                    [[column.cellTemplate]]
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-                </pl-virtual-scroll>
+                <div d:repeat="{{_vdata}}" d:as="row" part$="[[_getRowParts(row)]]" class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]" on-contextmenu="[[_onRowContextMenu]]">
+                    <div d:repeat="[[_filterCols(_columns)]]" d:as="column" part$="[[_getCellParts(row, column)]]" class$="[[_getCellClass(column, 'cell')]]" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                        [[getTemplateForCell(tree, multiSelect, column.index)]]
+                        [[column.cellTemplate]]
+                    </div>
+                </div>
             </div>
             <div id="footerContainer">
                 <div id="footer">
-                    <template d:repeat="[[_filterCols(_columns)]]" d:as="column">
-                        <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'footerEl)]]">
-                            <div class="footerCell">
-                                [[column.footerTemplate]]
-                            </div>
+                    <div d:repeat="[[_filterCols(_columns)]]" d:as="column" class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'footerEl)]]">
+                        <div class="footerCell">
+                            [[column.footerTemplate]]
                         </div>
-                    </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -294,7 +287,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         const headerResizeObserver = new ResizeObserver(throttle(() => {
             let offsetWidth = this.$.header.offsetWidth;
-            this.$.rowsContainer.style.width = offsetWidth + 'px';
+
+            this.$.rowsContainer.style.setProperty('width', offsetWidth + 'px')
+            this.$.rowsContainer.style.setProperty('contain-intrinsic-width', offsetWidth + 'px')
 
             if (this.$.container.offsetWidth >= offsetWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
@@ -335,6 +330,8 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
             this._init();
         }, 0);
+
+        //    this.interObserver = new IntersectionObserver()
     }
 
     _dataObserver(data, old, mut) {
@@ -350,6 +347,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 this.forwardNotify(mut, `data.${m[1]}`, 'selected');
             }
         }
+    }
+
+    _vdataObserver(data, old, mut) {
+        this.$.rowsContainer.style.setProperty('height', 46 * data.length + 'px')
+        this.$.rowsContainer.style.setProperty('contain-intrinsic-height', 46 * data.length + 'px')
     }
 
     _getCellClass(col, el) {
@@ -469,11 +471,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }`;
 
         this.$.columnSizes.textContent = classes;
-
-        setTimeout(() => {
-            // необходимо для отрисовки грида во вкладках, которые изнчально скрыты
-            this.$.scroller.render();
-        })
     }
 
     _init() {
@@ -585,6 +582,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         this.dispatchEvent(new CustomEvent('rowClick', { detail: { model: this.selected } }))
+
+        if (event.model.row instanceof PlaceHolder) {
+            const rn = this._vdata.indexOf(event.model.row);
+            this.splice('_vdata', rn, 1);
+            this.data.load(rn)
+        }
     }
 
     _onRowDblClick(event) {
@@ -596,6 +599,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         if (this.tree) {
             this._onTreeNodeClick(event);
         }
+    }
+
+    _onRowContextMenu(event) {
+        var customEvent = new CustomEvent('rowContextMenu', { 'cancelable': true });
+        customEvent.model = event.model;
+        customEvent.originalEvent = event;
+
+        this.dispatchEvent(customEvent);
+
+        if (customEvent.defaultPrevented) event.preventDefault();
     }
 
     _onTreeNodeClick(event) {
