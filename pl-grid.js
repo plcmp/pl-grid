@@ -7,7 +7,7 @@ import "@plcmp/pl-iconset-default";
 import "@plcmp/pl-data-tree";
 import "@plcmp/pl-checkbox";
 
-import { PlResizeableMixin, throttle, PlaceHolder } from '@plcmp/utils';
+import { PlResizeableMixin, PlaceHolder, throttle } from '@plcmp/utils';
 
 import "./pl-grid-column.js";
 
@@ -49,6 +49,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             overflow: auto;
             position:relative;
             contain: strict;
+            content-visibility: auto;
         }
 
         #headerContainer{
@@ -125,13 +126,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         #rowsContainer {
-            height: 100%;
             width: 100%;
             position: relative;
             display: flex;
             flex-direction: column;
-            flex-shrink:0;
-            content-visibility: auto;
+            contain-intrinsic-size: auto;
         }
 
         .row {
@@ -144,6 +143,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             width: 100%;
             box-sizing: border-box;
             position: relative;
+            content-visibility: auto;
         }
 
         .row[loading]::after {
@@ -285,7 +285,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         if (styleComment) this.shadowRoot.append(styleComment._tpl.tpl.content.cloneNode(true));
 
-        const headerResizeObserver = new ResizeObserver(throttle(() => {
+        const headerResizeObserver = new ResizeObserver(throttle((entries) => {
             let offsetWidth = this.$.header.offsetWidth;
 
             this.$.rowsContainer.style.setProperty('width', offsetWidth + 'px')
@@ -296,20 +296,22 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
             }
             this.reactToResize();
-        }, 10));
+        }, 200));
 
         headerResizeObserver.observe(this.$.header);
 
-        const containerResizeObserver = new ResizeObserver(throttle(() => {
+        const containerResizeObserver = new ResizeObserver(throttle((entries) => {
             if (this.$.container.scrollHeight <= this.$.container.offsetHeight) {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'absolute');
             } else {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'sticky');
             }
-            this.$.rowsContainer.style.setProperty('contain-intrinsic-width', this.$.container.offsetWidth + 'px')
+
+            this.$.rowsContainer.style.setProperty('contain-intrinsic-height', entries[0].contentRect.height + 200 + 'px')
+            this.$.rowsContainer.style.setProperty('contain-intrinsic-width', entries[0].contentRect.width + 'px')
 
             this.reactToResize();
-        }, 10));
+        }, 200));
 
         containerResizeObserver.observe(this.$.container);
 
@@ -331,7 +333,27 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             this._init();
         }, 0);
 
-        //    this.interObserver = new IntersectionObserver()
+        var options = {
+            threshold: 1.0,
+        };
+        var callback =  (entries, observer) => {
+            entries.forEach(entry => {
+                if(entry.intersectionRatio != 0) {
+                    observer.unobserve(entry.target);
+                    this.data.load(entry.target._item.row)
+                }
+            });
+        };
+        this.rowContainserIntObserver = new IntersectionObserver(callback, options);
+    }
+
+    _vdataObserver(val, old, mut){
+        if(mut.path == '_vdata' && mut.action == 'splice') {
+            this.$.rowsContainer.querySelectorAll('.row').forEach((el) => {
+                if(el._item.row instanceof PlaceHolder)
+                    this.rowContainserIntObserver.observe(el);
+            })
+        }
     }
 
     _dataObserver(data, old, mut) {
@@ -347,11 +369,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 this.forwardNotify(mut, `data.${m[1]}`, 'selected');
             }
         }
-    }
-
-    _vdataObserver(data, old, mut) {
-        this.$.rowsContainer.style.setProperty('height', 46 * data.length + 'px')
-        this.$.rowsContainer.style.setProperty('contain-intrinsic-height', 46 * data.length + 'px')
     }
 
     _getCellClass(col, el) {
@@ -574,7 +591,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             return false;
         }
 
-
         // проверка, что выделенный элемент присутствует в списке видимых данных
         // необходимо при инлайн удалении строки
         if (event.model.row && this._vdata.includes(event.model.row)) {
@@ -582,12 +598,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
 
         this.dispatchEvent(new CustomEvent('rowClick', { detail: { model: this.selected } }))
-
-        if (event.model.row instanceof PlaceHolder) {
-            const rn = this._vdata.indexOf(event.model.row);
-            this.data.load(event.model.row)
-            this.splice('_vdata', rn, 1);
-        }
     }
 
     _onRowDblClick(event) {

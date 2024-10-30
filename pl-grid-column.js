@@ -183,15 +183,14 @@ class PlGridColumn extends PlElement {
             this._cellTemplate._hctx = [this];
         }
     }
-
-    onResize(event) {
+    onResize = throttle((event) => {
         if(!this.resizable) return;
         if (!this.width) this.width = this.offsetWidth;
         this._resizeBase = { baseSize: parseInt(this.width), baseMoveOffset: event.screenX };
         event.preventDefault();
-        const moveHandler = throttle((event) => {
+        const moveHandler = (event) => {
             this.width = Math.max(this.minWidth, this._resizeBase.baseSize + (event.screenX - this._resizeBase.baseMoveOffset));
-        }, 20)
+        }
 
         const removeHandlers = () => {
             document.removeEventListener('mousemove', moveHandler);
@@ -202,7 +201,7 @@ class PlGridColumn extends PlElement {
         };
         document.addEventListener('mousemove', moveHandler);
         document.addEventListener('mouseup', upHandler);
-    }
+    }, 200)
 
     _getSortIcon() {
         let icon = 'sort';
