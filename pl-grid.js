@@ -292,11 +292,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         if (styleComment) this.shadowRoot.append(styleComment._tpl.tpl.content.cloneNode(true));
 
-        const headerResizeObserver = new ResizeObserver(throttle(() => {
-            let offsetWidth = this.$.header.offsetWidth;
-            this.$.rowsContainer.style.width = offsetWidth + 'px';
+        const headerResizeObserver = new ResizeObserver(throttle((resizes) => {
+            let headerWidth = resizes[0].contentRect.width;
+            this.$.rowsContainer.style.width = headerWidth + 'px';
 
-            if (this.$.container.offsetWidth >= offsetWidth) {
+            if (this.$.container.offsetWidth >= headerWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
             } else {
                 this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
