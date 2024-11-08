@@ -397,7 +397,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 style.push(`flex-shrink: 0`);
             }
             else {
-                style.push(`flex-basis: ${el.node.offsetWidth}px`);
+                style.push(`flex: 1 0 ${el.node.offsetWidth}px`);
             }
 
             style.push(`justify-content: ${el.justify}`);
