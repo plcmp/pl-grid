@@ -86,6 +86,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .headerEl {
             height: 100%;
             box-sizing: border-box;
+            border-inline-end: 1px solid var(--pl-grey-light);
         }
 
         .footerEl {
@@ -116,8 +117,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: var(--pl-action-column-position, sticky);
             background-color: var(--pl-grey-lightest);
             border-inline-start: 1px solid var(--pl-grey-light);
-            border-inline-end: none;
+            border-inline-end: 1px solid transparent;
             z-index: 3;
+        }
+
+        .headerEl:nth-last-child(1 of :not([action])) {
+            border-inline-end: 1px solid transparent;
         }
         
         .headerEl[hidden], .footerEl[hidden] {
@@ -136,13 +141,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .row {
             display: flex;
             flex-direction: row;
-            border-top: 1px solid transparent;
             border-bottom: 1px solid var(--pl-grey-light);
             background-color: var(--pl-background-color);
             color: var(--pl-text-color);
             width: 100%;
             box-sizing: border-box;
             position: relative;
+        }
+
+        .cell:nth-last-child(1 of :not([action])) {
+            border-inline-end: none;
         }
 
         .row[loading]::after {
@@ -159,7 +167,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .cell {
             display: flex;
-            min-width: 0;
             align-items: center;
             background-color: inherit;
             box-sizing: border-box;
@@ -181,7 +188,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .cell[fixed] {
             position: sticky;
-            border-inline-start: 1px solid var(--pl-grey-light);
             background-color: var(--pl-grey-lightest);
             z-index:1;
         }
@@ -296,7 +302,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             let headerWidth = resizes[0].contentRect.width;
             this.$.rowsContainer.style.width = headerWidth + 'px';
 
-            if (this.$.container.offsetWidth >= headerWidth) {
+            if (this.$.container.offsetWidth > headerWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
             } else {
                 this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
@@ -394,10 +400,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             let style = [];
             if (el.width) {
                 style.push(`width: ${el.width}px`);
-                style.push(`flex-shrink: 0`);
+                style.push(`min-width: ${el.minWidth}px`);
             }
             else {
-                style.push(`flex: 1 0 ${el.node.offsetWidth}px`);
+                style.push(`flex: 1`);
+                style.push(`min-width: ${el.minWidth}px`);
             }
 
             style.push(`justify-content: ${el.justify}`);
@@ -488,6 +495,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 field: column.field,
                 justify: column.justify,
                 width: column.width ? parseInt(column.width) : null,
+                minWidth: column.minWidth ? parseInt(column.minWidth) : 50,
                 resizable: column.resizable,
                 fixed: column.fixed || false,
                 action: column.action || false,

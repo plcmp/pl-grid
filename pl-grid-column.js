@@ -100,7 +100,6 @@ class PlGridColumn extends PlElement {
             box-sizing: border-box;
             display: flex;
             align-items: flex-start;
-            border-inline-end: 1px solid var(--pl-grey-light);
         }
 
         .header-container {
