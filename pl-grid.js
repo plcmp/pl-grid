@@ -251,11 +251,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         <div id="container">
             <div id="headerContainer">
                 <div id="header">
-                    <template d:repeat="[[_columns]]" d:as="column">
-                        <div class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'headerEl)]]">
-                            <slot name="[[_getSlotName(column.index)]]"></slot>
-                        </div>
-                    </template>
+                    <div d:repeat="[[_columns]]" d:as="column" class="headerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'headerEl)]]">
+                        <slot name="[[_getSlotName(column.index)]]"></slot>
+                    </div>
                 </div>
             </div>
             <div id="rowsContainer" part="rows">
@@ -274,13 +272,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             </div>
             <div id="footerContainer">
                 <div id="footer">
-                    <template d:repeat="[[_filterCols(_columns)]]" d:as="column">
-                        <div class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'footerEl)]]">
-                            <div class="footerCell">
-                                [[column.footerTemplate]]
-                            </div>
+                    <div  d:repeat="[[_filterCols(_columns)]]" d:as="column" class="footerEl" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'footerEl)]]">
+                        <div class="footerCell">
+                            [[column.footerTemplate]]
                         </div>
-                    </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -298,16 +294,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         if (styleComment) this.shadowRoot.append(styleComment._tpl.tpl.content.cloneNode(true));
 
-        const headerResizeObserver = new ResizeObserver(throttle((resizes) => {
-            let headerWidth = resizes[0].contentRect.width;
-            this.$.rowsContainer.style.width = headerWidth + 'px';
-
-            if (this.$.container.offsetWidth > headerWidth) {
-                this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
+        const headerResizeObserver = new ResizeObserver(throttle((entries) => {
+            let headerWidth = entries[0].contentRect.width;
+            if(this.$.container.offsetWidth >= headerWidth) {
+                this.$.rowsContainer.style.width = '100%';
             } else {
-                this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
+                this.$.rowsContainer.style.width = headerWidth + 'px';
             }
-            this.reactToResize();
         }, 10));
 
         headerResizeObserver.observe(this.$.header);
@@ -318,8 +311,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             } else {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'sticky');
             }
-
-            this.reactToResize();
+            if (this.$.container.offsetWidth > this.$.header.offsetWidth) {
+                this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
+            } else {
+                this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
+            }
         }, 10));
 
         containerResizeObserver.observe(this.$.container);
