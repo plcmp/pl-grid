@@ -241,12 +241,13 @@ class PlGridColumn extends PlElement {
         }));
     }
 
-    _columnWidthObserver(width) {
+    _columnWidthObserver(width, old, mut) {
         this.dispatchEvent(new CustomEvent('column-attribute-change', {
             detail: {
                 attribute: 'width',
                 index: this._index,
-                value: parseInt(width)
+                value: parseInt(width),
+                init: mut.init
             },
             bubbles: true
         }));

@@ -113,8 +113,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .headerEl[action],
         .footerEl[action] {
-            right: 0;
-            position: var(--pl-action-column-position, sticky);
+            position: var(--pl-action-column-position, absolute);
             background-color: var(--pl-grey-lightest);
             border-inline-start: 1px solid var(--pl-grey-light);
             border-inline-end: 1px solid transparent;
@@ -301,7 +300,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             } else {
                 this.$.rowsContainer.style.width = headerWidth + 'px';
             }
-        }, 10));
+        }, 20));
 
         headerResizeObserver.observe(this.$.header);
 
@@ -311,12 +310,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             } else {
                 this.$.container.style.setProperty('--pl-footer-container-position', 'sticky');
             }
-            if (this.$.container.offsetWidth > this.$.header.offsetWidth) {
-                this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
-            } else {
-                this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
-            }
-        }, 10));
+        }, 20));
 
         containerResizeObserver.observe(this.$.container);
 
@@ -362,7 +356,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         const { index, attribute, value, init } = event.detail;
         if (this._columns[index]) {
             if (attribute === 'width') {
-                this._changeColumnWidth(this._columns[index], value);
+                this._changeColumnWidth(this._columns[index], value, init);
             }
             if (attribute === 'sort') {
                 this._changeColumnSort(this._columns[index], value, init)
@@ -430,6 +424,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 style.push(`left: ${left}`);
             }
 
+            if (el.action) {
+                const right = realColumns.findIndex(x => x.index == el.index) == realColumns.length - 1 ? '0' : realColumns[el.index - 1].width + 'px';
+                style.push(`right: ${right}`);
+            }
+
             colStyles['.' + el.class] = style.join(';');
             colStyles['.headerEl.' + el.class] = el.headerCol ? `grid-area: ${el.class}; border-bottom: 1px solid var(--pl-grey-light)` : `grid-area: ${el.class}`;
         });
@@ -473,9 +472,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         this.$.columnSizes.textContent = classes;
 
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             // необходимо для отрисовки грида во вкладках, которые изнчально скрыты
             this.$.scroller.render();
+            
+            let colWidth = realColumns.map(x => x.width? x.width : x.node.offsetWidth).reduce((a, c) => { return a + c },0) + 2; //1px border-left and border-right
+            if (this.$.header.scrollWidth > colWidth) {
+                this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
+            } else {
+                this.$.container.style.setProperty('--pl-action-column-position', 'sticky');
+            }
         })
     }
 
@@ -523,8 +529,9 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         if (this._columns.find(x => x.footerTemplate)) {
             this.$.container.style.setProperty('--pl-footer-display', 'flex');
         }
-
-        this.reactToResize();
+        requestAnimationFrame(() => {
+            this.reactToResize();
+        })
     }
 
     _filterCols(cols) {
@@ -558,9 +565,11 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }
     }
 
-    _changeColumnWidth(column, width) {
-        this.set(`_columns.${column.index}.width`, width);
-        this.reactToResize();
+    _changeColumnWidth(column, width, init) {
+        if(!init) {
+            this.set(`_columns.${column.index}.width`, width);
+            this.reactToResize();
+        }
     }
 
     _getSlotName(index) {
