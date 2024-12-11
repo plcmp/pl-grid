@@ -10,8 +10,7 @@ class PlGridColumn extends PlElement {
             type: String
         },
         width: {
-            type: Number,
-            observer: '_columnWidthObserver'
+            type: Number
         },
         minWidth: {
             type: Number,
@@ -28,8 +27,7 @@ class PlGridColumn extends PlElement {
             value: 'left'
         },
         hidden: {
-            type: Boolean,
-            observer: '_columnHiddenObserver'
+            type: Boolean
         },
         kind: {
             type: String
@@ -160,7 +158,6 @@ class PlGridColumn extends PlElement {
                 </div>
                 <slot name="filter"></slot>
             </div>
-            <span class="column-resizer" on-mousedown="[[onResize]]"></span>
         </div>
     `;
 
@@ -183,25 +180,6 @@ class PlGridColumn extends PlElement {
         }
     }
 
-    onResize(event) {
-        if(!this.resizable) return;
-        if (!this.width) this.width = this.offsetWidth;
-        this._resizeBase = { baseSize: parseInt(this.width), baseMoveOffset: event.screenX };
-        event.preventDefault();
-        const moveHandler = throttle((event) => {
-            this.width = Math.max(this.minWidth, this._resizeBase.baseSize + (event.screenX - this._resizeBase.baseMoveOffset));
-        }, 20)
-
-        const removeHandlers = () => {
-            document.removeEventListener('mousemove', moveHandler);
-            document.removeEventListener('mouseup', upHandler);
-        };
-        const upHandler = () => {
-            removeHandlers();
-        };
-        document.addEventListener('mousemove', moveHandler);
-        document.addEventListener('mouseup', upHandler);
-    }
 
     _getSortIcon() {
         let icon = 'sort';
@@ -241,28 +219,6 @@ class PlGridColumn extends PlElement {
         }));
     }
 
-    _columnWidthObserver(width, old, mut) {
-        this.dispatchEvent(new CustomEvent('column-attribute-change', {
-            detail: {
-                attribute: 'width',
-                index: this._index,
-                value: parseInt(width),
-                init: mut.init
-            },
-            bubbles: true
-        }));
-    }
-    _columnHiddenObserver(val) {
-        this.dispatchEvent(new CustomEvent('column-attribute-change', {
-            detail: {
-                attribute: 'hidden',
-                index: this._index,
-                value: val
-            },
-            bubbles: true
-        }));
-
-    }
     _getTitle(row, field, kind, format, titleField) {
         if (row) {
             if(titleField) {
