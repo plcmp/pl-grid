@@ -8,6 +8,7 @@ import "@plcmp/pl-data-tree";
 import "@plcmp/pl-checkbox";
 
 import { PlResizeableMixin, throttle, PlaceHolder } from '@plcmp/utils';
+import dayjs from 'dayjs/esm/index.js';
 
 import "./pl-grid-column.js";
 
@@ -84,14 +85,44 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             flex: 1;
         }
 
+        .header-el-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--pl-space-sm);
+            justify-content: space-between;
+            text-align: start;
+            width: 100%;
+            height: 100%;
+        }
+
+        .header-text-container {
+            display: flex;
+            gap: var(--pl-space-sm);
+            justify-content: space-between;
+            text-align: start;
+            width: 100%;
+        }
+
+        .header-text {
+            white-space: normal;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
         .cell.headerEl {
             height: 100%;
             white-space: normal;
-            padding: var(--pl-space-sm);
             min-height: var(--pl-base-size);
             justify-content: flex-start;
             text-align: left;
-            align-items: flex-start;            
+            align-items: flex-start;
+            padding: var(--pl-space-sm);
+            font: var(--pl-header-font);
+            color: var(--pl-header-color);
+            display: flex;
+            flex-direction: column;
+            gap: var(--pl-space-sm);
         }
 
         .cell.headerEl.group {
@@ -103,10 +134,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             display: flex;
             align-items: center;
             height: 100%;
-            padding: var(--pl-space-sm);
             box-sizing: border-box;
             font: var(--pl-header-font);
             color: var(--pl-header-color);
+            padding: var(--pl-space-sm);
         }
 
         .footerCell{
@@ -199,10 +230,12 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             position: relative;
         }
 
-        .cell > span {
+        .cell-content {
             padding: var(--pl-space-sm);
+            width: 100%;
+            box-sizing: border-box;
         }
-        
+
         .cell * {
             word-wrap: break-word;
             text-overflow: ellipsis;
@@ -252,7 +285,6 @@ class PlGrid extends PlResizeableMixin(PlElement) {
 
         .cell[action] {
             position: var(--pl-action-column-position, absolute);
-            right: 0;
             border-inline-start: 1px solid var(--pl-grey-light);
             border-inline-end: 1px solid transparent;
             z-index:1;
@@ -296,9 +328,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         .multi-checkbox {
             height: var(--pl-base-size);
             width: var(--pl-base-size);
+            padding: 0 0 0 var(--pl-space-sm);
+        }
+
+        .column-sort {
+            cursor: pointer;
+            color: var(--pl-grey-dark);
+            margin-inline-end: 4px;
         }
     `;
-    static checkboxCellTemplate = `<pl-checkbox class="multi-checkbox" checked="[[_itemSelected(row, selectedList)]]" on-click="[[_onSelect]]"></pl-checkbox>`;
+    static checkboxCellTemplate = `<pl-checkbox class="multi-checkbox " checked="[[_itemSelected(row, selectedList)]]" on-click="[[_onSelect]]"></pl-checkbox>`;
     static treeFirstCellTemplate = `<pl-icon-button style$="[[_getRowMargin(row, column.index)]]" variant="link" iconset="pl-default" icon="[[_getTreeIcon(row)]]" on-click="[[_onTreeNodeClick]]"></pl-icon-button>`;
 
     static template = html`
@@ -310,8 +349,16 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             <div id="headerContainer">
                 <div id="header">
                     <div d:repeat="[[_columns]]" d:as="column" hidden$=[[column.hidden]] fixed$=[[column.fixed]] action$="[[column.action]]" class$="[[_getCellClass(column, 'headerEl')]]">
-                        <div>[[column.header]]</div>
-                        <span hidden$="[[column._isHeaderColumn]]" class="column-resizer" on-mousedown="[[onResize]]"></span>
+                        <div class="header-el-container">
+                            <div class="header-text-container">
+                                <div class="header-text">[[column.header]]</div>
+                                <div hidden$="[[!column.sortable]]" class="column-sort" on-click="[[_onSortClick]]">
+                                    <pl-icon iconset="pl-grid-icons" size="16" icon="[[_getSortIcon(column)]]"></pl-icon>
+                                </div>
+                            </div>
+                        [[column.filterTemplate]]
+                        </div>
+                        <div hidden$="[[_isResizable(column._isHeaderColumn, column.resizable)]]" class="column-resizer" on-mousedown="[[onResize]]"></div>
                     </div>
                 </div>
             </div>
@@ -320,10 +367,10 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                     <template id="tplRow">
                         <div part$="[[_getRowParts(row)]]" class="row" loading$="[[_isPlaceholder(row)]]" active$="[[_isRowActive(row, selected)]]" on-click="[[_onRowClick]]" on-dblclick="[[_onRowDblClick]]">
                             <template d:repeat="[[_filterCols(_columns)]]" d:as="column">
-                                <div part$="[[_getCellParts(row, column)]]" class$="[[_getCellClass(column, 'cell')]]" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]">
+                                <div part$="[[_getCellParts(row, column)]]" class$="[[_getCellClass(column, 'cell')]]" hidden$="[[column.hidden]]" fixed$="[[column.fixed]]" action$="[[column.action]]" title$="[[_getTitle(row, column)]]">
                                     [[getTemplateForCell(tree, multiSelect, column.index)]]
                                     [[column.cellTemplate]]
-                                    <span class="column-resizer" on-mousedown="[[onResize]]"></span>
+                                    <span class="column-resizer" hidden$="[[!column.resizable]]" on-mousedown="[[onResize]]"></span>
                                 </div>
                             </template>
                         </div>
@@ -350,7 +397,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         super.connectedCallback();
 
         this.scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-          
+
         this.addEventListener('column-attribute-change', this.onColumnAttributeChange);
         const styleComment = Array.from(this.childNodes)
             .find(node => node.nodeType === Node.COMMENT_NODE && node._tpl && node._tpl.tpl.matches('[is="extra styles"]'));
@@ -396,12 +443,80 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         }, 0);
     }
 
+    _isResizable(group, resizable) {
+        return group || !resizable;
+    }
+
     _variableRowHeightObserver(val) {
-        if(val) {
+        if (val) {
             this.$.container.style.setProperty('--pl-grid-cell-height', 'auto');
             this.$.container.style.setProperty('--pl-grid-cell-white-space', 'normal');
             this.$.container.style.setProperty('--pl-grid-cell-align-items', 'flex-start');
         }
+    }
+
+    _getTitle(row, column) {
+        if (row) {
+            if (column.titleField) {
+                return this.getByPath(row, column.titleField);
+            }
+            else {
+                return this._getValue(row, column.field, column.kind, column.format);
+            }
+        }
+    }
+
+    _getValue(row, field, kind, format) {
+        if (row) {
+            if (kind === 'date' && row[field]) {
+                return dayjs(this.getByPath(row, field)).format(format || 'DD.MM.YYYY');
+            }
+            return this.getByPath(row, field);
+        }
+    }
+
+    _getSortIcon(column) {
+        let icon = 'sort';
+        switch (column.sort) {
+            case 'asc': {
+                icon = 'sort-asc';
+                break;
+            }
+            case 'desc': {
+                icon = 'sort-desc';
+                break;
+            }
+        }
+
+        return icon;
+    }
+
+    _onSortClick(event) {
+        let sort = '';
+        if (!event.model.column.sort) {
+            sort = 'asc';
+        } else if (event.model.column.sort === 'asc') {
+            sort = 'desc';
+        }
+        else {
+            sort = '';
+        }
+
+        this.set(`_columns.${event.model.column.index}.sort`, sort);
+        this._changeColumnSort(event.model.column, sort)
+    }
+
+    getByPath(object, path, delimiter = '.') {
+        if (path == undefined) return '';
+        path = path.split(delimiter);
+        let i;
+        for (i = 0; i < path.length - 1; i++) {
+            if (!object[path[i]]) {
+                return;
+            }
+            object = object[path[i]];
+        }
+        return object[path[i]];
     }
 
     onResize(event) {
@@ -414,7 +529,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         const moveHandler = throttle((event) => {
             width = Math.max(minWidth, _resizeBase.baseSize + (event.screenX - _resizeBase.baseMoveOffset));
             this._changeColumnWidth(this._columns[columnIdx], width);
-        }, 10)
+        }, 20)
 
         const removeHandlers = () => {
             document.removeEventListener('mousemove', moveHandler);
@@ -427,14 +542,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         document.addEventListener('mouseup', upHandler);
     }
 
-
     _growingObserver(val) {
-        if(val) {
+        if (val) {
             this.$.container.style.setProperty('--pl-grid-contain', 'none');
         }
     }
 
-    _dataObserver(data, old, mut) {
+    _dataObserver(_data, _old, mut) {
         if (mut.action === 'splice' && mut.path == 'data') {
             if (mut?.deleted?.includes(this.selected)) {
                 this.selected = null;
@@ -452,7 +566,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
     }
 
     _getCellClass(col, el) {
-        if(el == 'headerEl') {
+        if (el == 'headerEl') {
             return el + ' ' + col.class + ' cell' + (col._isHeaderColumn ? ' group' : '');
         }
 
@@ -527,13 +641,13 @@ class PlGrid extends PlResizeableMixin(PlElement) {
             }
 
             if (el.fixed) {
-                const left = realColumns.findIndex(x => x.index == el.index) == 0 ? '0' : realColumns[el.index - 1].width + 'px';
-                style.push(`left: ${left}`);
+                let left = realColumns.filter(x => x.index < el.index).map(x => x.width || x.node.offsetWidth).reduce((a, c) => { return a + c }, 0);
+                style.push(`left: ${left}px`);
             }
 
             if (el.action) {
-                const right = realColumns.findIndex(x => x.index == el.index) == realColumns.length - 1 ? '0' : realColumns[el.index - 1].width + 'px';
-                style.push(`right: ${right}`);
+                const right = realColumns.filter(x => x.index > el.index).map(x => x.width || x.node.offsetWidth).reduce((a, c) => { return a + c }, 0)
+                style.push(`right: ${right}px`);
             }
 
             colStyles['.' + el.class] = style.join(';');
@@ -581,7 +695,7 @@ class PlGrid extends PlResizeableMixin(PlElement) {
         setTimeout(() => {
             // необходимо для отрисовки грида во вкладках, которые изнчально скрыты
             this.$.scroller.render();
-            let colWidth = Array.from(this.root.querySelectorAll('.headerEl')).map(x => x.offsetWidth).reduce((a, c) => { return a + c }, 0) + 2;
+            let colWidth = Array.from(this.root.querySelectorAll('.headerEl:not(.group)')).map(x => x.offsetWidth).reduce((a, c) => { return a + c }, 0) + 2; // 2 borders
             if (this.$.header.scrollWidth > colWidth) {
                 this.$.container.style.setProperty('--pl-action-column-position', 'absolute');
             } else {
@@ -606,11 +720,19 @@ class PlGrid extends PlResizeableMixin(PlElement) {
                 fixed: column.fixed || false,
                 action: column.action || false,
                 index: index,
+                sortable: column.sortable,
+                sort: column.sort,
                 cellTemplate: column._cellTemplate,
                 footerTemplate: column._footerTemplate,
+                filterTemplate: column._filterTemplate,
                 _isHeaderColumn: false,
                 node: column
             };
+
+            if(column.sort) {
+                this._changeColumnSort(column, column.sort, true);
+
+            }
 
             info.class = 'column-' + index
 

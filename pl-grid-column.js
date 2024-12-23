@@ -1,7 +1,6 @@
 import { PlElement, html, css } from "polylib";
 import "@plcmp/pl-icon";
 import "@plcmp/pl-iconset-default";
-import { throttle } from "@plcmp/utils";
 import dayjs from 'dayjs/esm/index.js';
 
 class PlGridColumn extends PlElement {
@@ -65,6 +64,9 @@ class PlGridColumn extends PlElement {
             type: Object
         },
         _footerTemplate: {
+            type: Object
+        },
+        _filterTemplate: {
             type: Object
         }
     }
@@ -165,9 +167,15 @@ class PlGridColumn extends PlElement {
         super.connectedCallback();
         let tplEls = [...this.childNodes].filter(n => n.nodeType === document.COMMENT_NODE && n.textContent.startsWith('tpl:'));
         let footerTpl = tplEls.find(tplEl => tplEl._tpl.tpl.getAttribute('is') == 'footer');
+        let filterTpl = tplEls.find(tplEl => tplEl._tpl.tpl.getAttribute('is') == 'filter');
+
         if(footerTpl) {
             this._footerTemplate = footerTpl?._tpl;
             this._footerTemplate._hctx = [...footerTpl._hctx, this];
+        }
+        if(filterTpl) {
+            this._filterTemplate = filterTpl?._tpl;
+            this._filterTemplate._hctx = [...filterTpl._hctx, this];
         }
         let cellTpl = tplEls.find(tplEl => !tplEl._tpl.tpl.hasAttribute('is'));
         if(cellTpl) {
@@ -175,7 +183,7 @@ class PlGridColumn extends PlElement {
             this._cellTemplate._hctx = [...cellTpl._hctx, this];
         }
         else {
-            this._cellTemplate = html`<span title$="[[_getTitle(row, field, kind, format, titleField)]]">[[_getValue(row, field, kind, format)]]</span>`;
+            this._cellTemplate = html`<span class="cell-content" >[[_getValue(row, field, kind, format)]]</span>`;
             this._cellTemplate._hctx = [this];
         }
     }
