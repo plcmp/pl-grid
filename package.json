@@ -25,7 +25,7 @@
     "dependencies": {
         "polylib": "^1.1.4",
         "dayjs": "^1.10.7",
-        "@plcmp/pl-virtual-scroll": "^0.1.0",
+        "@plcmp/pl-virtual-scroll": "^1.0.2",
         "@plcmp/utils": "^0.1.0",
         "@plcmp/pl-icon": "^0.1.0",
         "@plcmp/pl-iconset-default": "^0.1.0",
